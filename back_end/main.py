@@ -1,6 +1,8 @@
-def main():
-    print("Hello from back-end!")
+from fastapi import FastAPI
+from pydantic import BaseModel
 
+app = FastAPI()
 
-if __name__ == "__main__":
-    main()
+@app.get("api/test")
+def test_endpoint():
+    return {"message": "Hello from back-end!"}
