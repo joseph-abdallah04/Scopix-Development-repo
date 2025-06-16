@@ -11,7 +11,7 @@ docker run -it --rm \
     pnpm install &&
     pnpm run dev"
 ```
-## this is for the frontend dev:
+## this is for the backend dev:
 
 ```bash
 docker run -it --rm \
@@ -37,7 +37,7 @@ docker run -it --rm `
     pnpm install &&
     pnpm run dev"
 ```
-## this is for the frontend dev:
+## this is for the backend dev:
 
 ```powershell
 docker run -it --rm `
