@@ -20,7 +20,6 @@ docker run -it --rm \
   rnsh-dev \
   bash -c "
     cd /home/ubuntu/RNSH &&
-    source .venv/bin/activate &&
     uv sync"
 ```
 
@@ -46,6 +45,5 @@ docker run -it --rm `
   rnsh-dev `
   bash -c "
     cd /home/ubuntu/RNSH &&
-    source .venv/bin/activate &&
     uv sync"
 ```
