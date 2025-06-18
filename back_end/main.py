@@ -1,7 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-@app.get("/api/test")
-def test_endpoint():
-    return {"message": "Hello from back-end!"}
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+    # Optional: Save file
+    with open(f"uploads/{file.filename}", "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    return JSONResponse(content={"filename": file.filename, "content_type": file.content_type})
