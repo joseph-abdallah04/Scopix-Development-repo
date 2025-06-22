@@ -19,7 +19,7 @@ async def upload_csv_file(file: UploadFile = File(...)):
     os.makedirs("uploads", exist_ok=True)
     
     # Save the uploaded file
-    file_path = f"uploads/{file.filename}"
+    file_path = f"uploads/{file.filename}" # Consider inputting tempfile
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)
