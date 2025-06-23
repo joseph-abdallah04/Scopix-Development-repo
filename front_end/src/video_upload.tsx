@@ -2,9 +2,14 @@ import React, { useState } from 'react';
 import './upload_page.css';
 import uploadIcon from './assets/uploadIcon.png';
 
-function VideoUpload() {
+interface VideoUploadProps {
+  onAnalyse?: (file: File) => void;
+}
+
+function VideoUpload({onAnalyse}: VideoUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAnalysing, setIsAnalysing] = useState(false);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -20,6 +25,18 @@ function VideoUpload() {
         setError('Please upload a valid MP4 video file.');
       }
     }
+  };
+
+  const handleAnalyse = async () => {
+    if (!file || !onAnalyse) return;
+    
+    setIsAnalysing(true);
+    
+    // Simulate analysis processing
+    setTimeout(() => {
+      setIsAnalysing(false);
+      onAnalyse(file);
+    }, 500);
   };
 
   return (
@@ -60,8 +77,9 @@ function VideoUpload() {
           </button>
         )}
         <button
-          className={`analyse-btn${!file ? ' disabled' : ''}`}
-          disabled={!file}
+          className={`analyse-btn${!file || isAnalysing ? ' disabled' : ''}`}
+          disabled={!file || isAnalysing}
+          onClick={handleAnalyse}
         >
           Analyse
         </button>

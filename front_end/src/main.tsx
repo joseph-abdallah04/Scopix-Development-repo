@@ -6,18 +6,22 @@ import VideoUpload from './video_upload.tsx';
 import SettingsPage from './settings-page.tsx';
 import CSVResultsPage from './csv_results_page.tsx';
 import NavBar from './components/nav_bar.tsx';
+import VideoAnalysis from './video_analysis_page.tsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('csv');
-  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvFile, setCSVFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const rendercontent = () => {
     switch (activeTab) {
-      case 'csv': return <CSVUpload onAnalyse={(file) => { setCsvFile(file); setActiveTab('csv-results'); }} />;
-      case 'video': return <VideoUpload />;
+      case 'csv': return <CSVUpload onAnalyse={(file) => { setCSVFile(file); setActiveTab('csv-results'); }} />;
+      case 'video': return <VideoUpload onAnalyse={(file) => {setVideoFile(file); setActiveTab('video-analysis')}} />;
       case 'settings': return <SettingsPage />;
       case 'csv-results': return <CSVResultsPage file={csvFile} onBack={() => setActiveTab('csv')} />;
-      default: return <CSVUpload onAnalyse={(file) => { setCsvFile(file); setActiveTab('csv-results'); }} />;
+      case 'video-analysis': return <VideoAnalysis file={videoFile} onBack={() => setActiveTab('video')} />;
+
+      default: return <CSVUpload onAnalyse={(file) => { setCSVFile(file); setActiveTab('csv-results'); }} />;
     }
   };
 
