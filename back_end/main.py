@@ -1,16 +1,28 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, Query
+from fastapi.responses import JSONResponse, Response
 import tempfile
 import logging
+import uuid
+import os
+import shutil
+from typing import Dict, Optional
 # Import our validation modules
 from csv_validation import validate_csv_file
 from video_validation import validate_video_file
+# Import other logic
+from frame_capture import capture_frame
+from session_manager import session_manager
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Directory to store videos - Creates directory if it doesn't already exist
+VIDEO_STORAGE_DIR = "/tmp/current_video"
+os.makedirs(VIDEO_STORAGE_DIR, exist_ok=True)
 
 @app.post("/upload-csv/")
 async def upload_csv_file(file: UploadFile = File(...)):
@@ -68,6 +80,21 @@ async def upload_video_file(file: UploadFile = File(...)):
                 }
             )
         
+        # Save video for analysis session (temporary but accessible)
+        video_filename = f"analysis_video_{uuid.uuid4()}.mp4"
+        video_path = os.path.join(VIDEO_STORAGE_DIR, video_filename)
+        shutil.copy2(temp_file.name, video_path)
+
+        # Extract video metadata using the validation result
+        metadata = validation_result.get("metadata", {})
+
+        # Create new session (automatically clears any existing session)
+        session_id = session_manager.create_session(
+            video_path=video_path,
+            filename=file.filename,
+            metadata=metadata
+        )
+        
         return JSONResponse(content={
             "filename": file.filename,
             "content_type": file.content_type,
@@ -76,3 +103,31 @@ async def upload_video_file(file: UploadFile = File(...)):
             "status": "success"
         })
     # Temp file is automatically deleted when exiting the context manager
+
+@app.get("/frame/")
+async def get_video_frame(
+    frame_idx: int = Query(None, description="Frame index to extract"),
+    timestamp: float = Query(None, description="Timestamp (in seconds) to extract")
+):
+    """
+    Extract a frame from the current session's video by frame index or timestamp.
+    Returns the frame as a JPEG image
+    """
+
+    # Get current session
+    session = session_manager.get_current_session()
+    if not session:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "No active video session"}
+        )
+    
+    try:
+        jpeg_bytes = capture_frame(
+            file_path=session["video_path"],
+            frame_idx=frame_idx,
+            timestamp=timestamp
+        )
+        return Response(content=jpeg_bytes, media_type="image/jpeg")
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
