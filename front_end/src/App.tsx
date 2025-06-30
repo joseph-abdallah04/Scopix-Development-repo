@@ -1,35 +1,31 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.tsx
+import React from "react"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 
-function App() {
-  const [count, setCount] = useState(0)
+import NavBar from "./components/nav_bar"
+import CsvResultsPage from "./pages/csv_results_page"
+import SettingsPage from "./pages/settings-page"
+import CsvUpload from "./pages/csv_upload"
+import VideoUpload from "./pages/video_upload"
 
+const App: React.FC = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <Router>
+      <div className="min-h-screen bg-gray-100 text-gray-900">
+        <NavBar />
+        <main>
+          <Routes>
+            <Route path="/" element={<CsvUpload />} />
+            <Route path="/csv-upload" element={<CsvUpload />} />
+            <Route path="/csv-results" element={<CsvResultsPage />} />
+            <Route path="/video-upload" element={<VideoUpload />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </main>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </Router>
   )
 }
 
 export default App
+
