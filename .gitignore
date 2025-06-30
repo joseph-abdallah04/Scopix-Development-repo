@@ -1,2 +1,4 @@
 .DS_Store
 .pnpm-store
+.pnpm
+node_modules
