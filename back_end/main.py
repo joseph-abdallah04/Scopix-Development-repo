@@ -8,36 +8,32 @@ import os
 import shutil
 from typing import Dict, Optional
 # Import our validation modules
-from csv_validation import validate_csv_file
-from video_validation import validate_video_file
+# from video_validation import validate_video_file
 # Import other logic
-from frame_capture import capture_frame
-from session_manager import session_manager
+# from frame_capture import capture_frame
+# from session_manager import session_manager
 
+from api.plotter_api import router as plotter_api
+from api.upload_and_downland_api import router as upload_and_downland_api
+from fastapi.middleware.gzip import GZipMiddleware
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# Add CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://0.0.0.0:5173",
-        "http://127.0.0.1:5173",
-        "http://192.168.65.1:5173" # Joseph's docker container host IP
-    ], # The Vite dev server
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+app.include_router(plotter_api)
+app.include_router(upload_and_downland_api)
 
+'''
 # Directory to store videos - Creates directory if it doesn't already exist
 VIDEO_STORAGE_DIR = "/tmp/current_video"
 os.makedirs(VIDEO_STORAGE_DIR, exist_ok=True)
+
+
+
 
 @app.post("/upload-csv/")
 async def upload_csv_file(file: UploadFile = File(...)):
@@ -69,7 +65,9 @@ async def upload_csv_file(file: UploadFile = File(...)):
             "status": "success"
         })
     # Temp file is automatically deleted when exiting the context manager
+'''
 
+'''
 @app.post("/upload-video/")
 async def upload_video_file(file: UploadFile = File(...)):
     """
@@ -146,3 +144,5 @@ async def get_video_frame(
         return Response(content=jpeg_bytes, media_type="image/jpeg")
     except Exception as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
+        
+'''

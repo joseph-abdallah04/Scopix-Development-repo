@@ -5,12 +5,18 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "chardet>=5.2.0",
     "fastapi[standard]>=0.115.2",
+    "joblib>=1.5.1",
     "matplotlib>=3.10.3",
     "moviepy>=2.2.1",
     "opencv-python-headless>=4.11.0.86",
+    "orjson>=3.11.0",
     "pandas>=2.3.0",
+    "physio>=0.2.0",
     "pillow>=11.2.1",
+    "pytest>=8.4.1",
     "python-multipart>=0.0.20",
+    "reportlab>=4.4.2",
     "uvicorn>=0.23.2",
 ]
