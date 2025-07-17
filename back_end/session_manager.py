@@ -38,36 +38,15 @@ class SingleSessionManager:
     def get_current_session(self) -> Optional[dict]:
         """Get the current active session"""
         return self.current_session
-    
+
     def add_measured_frame(self, frame_data: dict) -> str:
         """Add a measured frame to current session"""
         if not self.current_session:
             raise ValueError("No active session")
         
         frame_id = str(uuid.uuid4())
-
-        # Save thumbnail to disk if provided
-        thumbnail_path = None
-        if "thumbnail" in frame_data:
-            thumbnail_path = os.path.join(
-                self.session_temp_dir,
-                f"{frame_id}_thumb.jpg"
-            )
-            with open(thumbnail_path, "wb") as f:
-                f.write(frame_data["thumbnail"])
-            
-        # Store lightweight frame data
-        measured_frame = {
-            "frame_id": frame_id,
-            "frame_idx": frame_data["frame_idx"],
-            "timestamp": frame_data.get("points", []),
-            "area": frame_data.get("area"),
-            "thumbnail_path": thumbnail_path,
-            "analysis_type": frame_data.get("analysis_type", "manual"),
-            "created_at": datetime.now()
-        }
-
-        self.current_session["measured_frames"].append(measured_frame)
+        frame_data["frame_id"] = frame_id
+        self.current_session["measured_frames"].append(frame_data)
         return frame_id
 
     def set_baseline_frame(self, frame_id: str):
@@ -81,7 +60,7 @@ class SingleSessionManager:
         if not self.current_session:
             raise ValueError("No active session")
         
-        frame = next((f for f in self.current_session["measured_farmes"] if f["frame_id"] == frame_id), None)
+        frame = next((f for f in self.current_session["measured_frames"] if f["frame_id"] == frame_id), None)
         if not frame or not frame["thumbnail_path"]:
             raise ValueError("Frame or thumbnail not found")
 
@@ -98,8 +77,8 @@ class SingleSessionManager:
             os.remove(self.current_session["video_path"])
         
         # Delete all thumbnail files
-        for frame in self.current_session("measured_frames"):
-            if frame["thumbnail_path"] and os.path.exists(frame["thumbnail_path"]):
+        for frame in self.current_session["measured_frames"]:  # Fixed: Use bracket notation instead of parentheses
+            if frame.get("thumbnail_path") and os.path.exists(frame["thumbnail_path"]):
                 os.remove(frame["thumbnail_path"])
         
         # Clear from memory

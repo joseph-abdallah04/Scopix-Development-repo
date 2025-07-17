@@ -13,7 +13,7 @@ def capture_frame(file_path: str, timestamp: float = None, frame_idx: int = None
     """
 
     # Check if file path exists
-    if not is.path.exists(file_path):
+    if not os.path.exists(file_path):
         logger.error(f"Video file does not existL {file_path}")
         raise FileNotFoundError(f"Cannot find video file: {file_path}")
     

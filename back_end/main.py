@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, Query
 from fastapi.responses import JSONResponse, Response
+from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import logging
 import uuid
@@ -19,6 +20,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Add CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://0.0.0.0:5173",
+        "http://127.0.0.1:5173",
+        "http://192.168.65.1:5173" # Joseph's docker container host IP
+    ], # The Vite dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # Directory to store videos - Creates directory if it doesn't already exist
 VIDEO_STORAGE_DIR = "/tmp/current_video"
@@ -104,7 +119,7 @@ async def upload_video_file(file: UploadFile = File(...)):
         })
     # Temp file is automatically deleted when exiting the context manager
 
-@app.get("/frame/")
+@app.get("/frame-capture/")
 async def get_video_frame(
     frame_idx: int = Query(None, description="Frame index to extract"),
     timestamp: float = Query(None, description="Timestamp (in seconds) to extract")

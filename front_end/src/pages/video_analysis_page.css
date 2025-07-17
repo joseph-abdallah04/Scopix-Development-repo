@@ -6,7 +6,7 @@
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding-top: 90px;
+  padding: 1rem; /* Reduced padding for better space utilization */
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -15,34 +15,79 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 1rem;
   max-width: 100%;
-  height: calc(100vh - 90px);
+  height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
-.analysis-content {
+/* Main Layout - Two Column Flexbox */
+.analysis-layout {
   display: flex;
   flex: 1;
-  gap: 1rem;
+  gap: 1rem; /* Reduced gap to maximize space */
   min-height: 0;
   overflow: hidden;
+  margin-top: 1rem; /* Much smaller margin */
+  padding-top: 0; /* Remove extra padding */
 }
 
-/* Left Sidebar - Frames List */
-.frames-sidebar {
-  width: 280px;
+/* Left Column - Saved Frames List with Back Button */
+.left-column {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem; /* Gap between back button and frames section */
+  max-height: 100%;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+/* Back Button - Now positioned above frames list */
+.back-btn-container {
+  display: flex;
+  justify-content: stretch;
+  flex-shrink: 0;
+}
+
+.back-btn-top {
+  background: #4a5568;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  width: 100%; /* Make button take full width of container */
+  text-align: center; /* Center the text within the button */
+}
+
+.back-btn-top:hover {
+  background: #2d3748;
+}
+
+/* Frames Section - Now takes remaining space */
+.frames-container {
   background: #1a1a1a;
   border-radius: 12px;
   border: 1px solid #333;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
+  flex: 1; /* Take remaining space after back button */
   min-height: 0;
 }
 
-.frames-sidebar h3 {
+.frames-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.frames-section h3 {
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
   color: #fff;
@@ -58,6 +103,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+  padding-right: 0.5rem;
 }
 
 .frame-item {
@@ -66,8 +112,15 @@
   border: 1px solid #4a5568;
   padding: 0.75rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.frame-thumbnail {
+  width: 60px;
+  height: 45px;
+  border-radius: 4px;
+  object-fit: cover;
   flex-shrink: 0;
 }
 
@@ -75,6 +128,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .frame-name-container {
@@ -94,22 +148,8 @@
 .frame-name {
   font-weight: 500;
   color: #fff;
-  cursor: pointer;
-  flex: 1;
-}
-
-.frame-name:hover {
-  color: #2563eb;
-}
-
-.frame-name-input {
-  background: #4a5568;
-  border: 1px solid #2563eb;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  color: #fff;
   font-size: 0.9rem;
-  width: 100%;
+  flex: 1;
 }
 
 .frame-time {
@@ -117,32 +157,9 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-.frame-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.goto-btn, .baseline-btn {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+.frame-index {
   font-size: 0.8rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.goto-btn:hover, .baseline-btn:hover {
-  background: #1a47b8;
-}
-
-.baseline-btn {
-  background: #4a5568;
-}
-
-.baseline-btn:hover {
-  background: #2d3748;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .no-frames {
@@ -152,85 +169,35 @@
   padding: 2rem 0;
 }
 
-/* Main Video Area */
-.video-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* Save Measured Frame Button - Top Right */
-.video-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
-.save-frame-btn {
+.export-btn {
   background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
-}
-
-.save-frame-btn:hover {
-  background: #1a47b8;
-}
-
-/* Toolbar */
-.video-toolbar {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: #1a1a1a;
-  border-radius: 8px;
-  border: 1px solid #333;
+  margin-top: 1rem;
   flex-shrink: 0;
 }
 
-.tool-btn {
-  background: #4a5568;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
+.export-btn:hover {
+  background: #1a47b8;
 }
 
-.tool-btn:hover {
-  background: #2d3748;
+/* Right Column - Video Player and Controls */
+.right-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.tool-btn.active {
-  background: #2563eb;
-}
-
-.clear-btn {
-  background: #dc2626;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-left: auto;
-}
-
-.clear-btn:hover {
-  background: #b91c1c;
-}
-
-/* Video Container */
+/* Video Container - Make this take up most of the space */
 .video-container {
   flex: 1;
   display: flex;
@@ -239,20 +206,9 @@
   background: #1a1a1a;
   border-radius: 12px;
   border: 1px solid #333;
-  padding: 1rem;
+  padding: 1.5rem;
   min-height: 0;
   overflow: hidden;
-}
-
-.video-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  max-width: 800px;
-  max-height: 450px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .video-player {
@@ -265,22 +221,7 @@
   object-fit: contain;
 }
 
-.measurement-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  cursor: crosshair;
-  pointer-events: auto;
-  border-radius: 8px;
-}
-
-.measurement-canvas.select-mode {
-  cursor: default;
-}
-
-/* Video Controls */
+/* Video Controls - More Compact */
 .video-controls {
   display: flex;
   flex-direction: column;
@@ -305,11 +246,11 @@
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 0.9rem;
-  min-width: 60px;
+  font-size: 0.85rem;
+  min-width: 50px;
 }
 
 .skip-btn:hover {
@@ -321,19 +262,38 @@
   color: #fff;
   border: none;
   border-radius: 50%;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   cursor: pointer;
   transition: background 0.2s;
   font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 1rem;
+  margin: 0 0.75rem;
   flex-shrink: 0;
+  font-size: 1.2rem;
 }
 
 .play-pause-btn:hover {
+  background: #1a47b8;
+}
+
+/* Measure Frame Button - Inline with controls */
+.measure-frame-btn-inline {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 1rem;
+}
+
+.measure-frame-btn-inline:hover {
   background: #1a47b8;
 }
 
@@ -346,7 +306,7 @@
 
 .timeline-slider {
   flex: 1;
-  height: 6px;
+  height: 5px;
   background: #4a5568;
   border-radius: 3px;
   outline: none;
@@ -356,16 +316,16 @@
 
 .timeline-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   background: #2563eb;
   border-radius: 50%;
   cursor: pointer;
 }
 
 .timeline-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   background: #2563eb;
   border-radius: 50%;
   cursor: pointer;
@@ -373,64 +333,51 @@
 }
 
 .time-display {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.8);
-  min-width: 40px;
+  min-width: 35px;
   text-align: center;
   flex-shrink: 0;
 }
 
-/* Bottom Actions */
-.analysis-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #333;
-  margin-top: 1rem;
+/* Frame Info Section */
+.frame-info-section {
+  background: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #333;
+  padding: 0.75rem 1rem;
   flex-shrink: 0;
 }
 
-.back-btn {
-  background: #4a5568;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
+.frame-info-display {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.8rem;
 }
 
-.back-btn:hover {
-  background: #2d3748;
+.frame-info-display span {
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
 }
 
-.export-btn {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.export-btn:hover {
-  background: #1a47b8;
+/* Remove the old top-right positioning styles */
+.top-right-section {
+  display: none; /* Hide the old positioning */
 }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .analysis-content {
+  .analysis-layout {
     flex-direction: column;
     overflow-y: auto;
+    margin-top: 0.5rem;
+    gap: 1rem;
   }
   
-  .frames-sidebar {
+  .left-column {
     width: 100%;
-    max-height: 200px;
+    max-height: 250px;
     min-height: 200px;
   }
   
@@ -448,56 +395,53 @@
 
 @media (max-width: 768px) {
   .video-analysis-bg {
-    padding-top: 120px;
+    padding: 0.75rem;
   }
   
-  .video-analysis-container {
-    padding: 0.5rem;
+  .analysis-layout {
+    margin-top: 0.5rem;
   }
   
   .playback-controls {
     gap: 0.25rem;
+    flex-wrap: wrap;
   }
   
   .skip-btn {
-    padding: 0.4rem 0.8rem;
+    padding: 0.3rem 0.6rem;
     font-size: 0.8rem;
-    min-width: 50px;
+    min-width: 45px;
   }
   
   .play-pause-btn {
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
     margin: 0 0.5rem;
+    font-size: 1rem;
   }
   
-  .analysis-actions {
-    flex-direction: column;
+  .measure-frame-btn-inline {
+    margin-left: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .back-btn-top {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
   }
 }
 
 @media (max-width: 480px) {
-  .frames-sidebar {
-    max-height: 150px;
-    min-height: 150px;
+  .analysis-layout {
+    margin-top: 0.25rem;
   }
   
-  .video-toolbar {
-    flex-wrap: wrap;
-    gap: 0.25rem;
+  .video-analysis-bg {
+    padding: 0.5rem;
   }
   
-  .tool-btn, .clear-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-  
-  .timeline-container {
-    flex-direction: column;
+  .left-column {
     gap: 0.5rem;
-  }
-  
-  .time-display {
-    font-size: 0.8rem;
   }
 }
