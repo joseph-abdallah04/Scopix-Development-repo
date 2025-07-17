@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { FiUpload } from "react-icons/fi"
 import { useNavigate } from 'react-router-dom'
-import { useTheme } from '../contexts/theme-context'
 
 interface FileUploadCardProps {
   accept: string
@@ -25,7 +24,6 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   const [isAnalysing, setIsAnalysing] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
-  const { isDarkMode } = useTheme()
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploaded = event.target.files?.[0]
@@ -68,26 +66,10 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
     <div className="flex flex-col items-center justify-center w-full">
       <div className="flex flex-row gap-16 items-start justify-center w-full">
         <div className="flex flex-col items-center justify-center gap-6">
-          <div className={`w-[450px] h-[500px] border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-colors duration-300 ${
-            isDarkMode 
-              ? 'border-gray-500 bg-[#181c23] text-white' 
-              : 'border-gray-400 bg-gray-50 text-gray-900'
-          }`}>
-            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors active:scale-85 transition-transform ${
-              isDarkMode 
-                ? 'hover:bg-blue-700' 
-                : 'hover:bg-blue-600'
-            }`}>
-              <FiUpload className={`w-20 h-20 transition-colors ${
-                isDarkMode 
-                  ? 'text-white' 
-                  : 'text-gray-600'
-              }`} />
-              <span className={`mt-2 text-xl transition-colors ${
-                isDarkMode 
-                  ? 'text-gray-400' 
-                  : 'text-gray-500'
-              }`}>{fileLabel}</span>
+          <div className="w-[450px] h-[500px] border-2 border-dashed border-gray-500 rounded-2xl bg-[#181c23] text-white p-6 flex flex-col items-center justify-center gap-4">
+            <label className="cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl hover:bg-blue-700 transition-colors active:scale-85 transition-transform">
+              <FiUpload className="w-20 h-20 transition-colors" />
+              <span className="mt-2 text-xl text-gray-400">{fileLabel}</span>
               <input
                 ref={inputRef}
                 type="file"
@@ -97,26 +79,14 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
               />
             </label>
             {file && <span className="text-green-400 text-sm">{file.name}</span>}
-            {error && <span className={`mt-4 text-sm ${
-              isDarkMode 
-                ? 'text-red-400' 
-                : 'text-red-600'
-            }`}>{error}</span>}
+            {error && <span className="text-red-400 mt-4 text-sm">{error}</span>}
           </div>
         </div>
 
         {instructionList.length > 0 && (
           <div className="max-w-md text-left mt-4">
-            <h2 className={`text-[42px] font-bold mb-2 transition-colors duration-300 ${
-              isDarkMode 
-                ? 'text-white' 
-                : 'text-gray-900'
-            }`}>Instructions</h2>
-            <ol className={`list-decimal list-inside space-y-1 text-lg transition-colors duration-300 ${
-              isDarkMode 
-                ? 'text-white' 
-                : 'text-gray-700'
-            }`}>
+            <h2 className="text-[42px] font-bold mb-2">Instructions</h2>
+            <ol className="list-decimal list-inside space-y-1 text-lg">
               {instructionList.map((item, idx) => (
                 <li key={idx}>{item}</li>
               ))}

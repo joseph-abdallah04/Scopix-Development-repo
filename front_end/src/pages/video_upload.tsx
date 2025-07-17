@@ -1,13 +1,11 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FileUploadCard from '../components/file_upload_card'
-import { useTheme } from '../contexts/theme-context'
 
 const VideoUpload = () => {
   const navigate = useNavigate()
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { isDarkMode } = useTheme()
 
   const handleAnalyse = async (file: File) => {
     setIsUploading(true)
@@ -20,9 +18,9 @@ const VideoUpload = () => {
       // Use the Docker host IP instead of localhost
       const response = await fetch('http://0.0.0.0:8000/upload-video/', {
         method: 'POST',
-        body: ormData,
+        body: formData,
       })
-
+      
       const result = await response.json()
 
       if (!response.ok) {
@@ -52,17 +50,9 @@ const VideoUpload = () => {
   }
 
   return (
-    <div className={`upload-bg w-screen h-screen flex flex-col items-center justify-center pt-24 transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-black text-white' 
-        : 'bg-white text-gray-900'
-    }`}>
+    <div className="upload-bg w-screen h-screen bg-black text-white flex flex-col items-center justify-center pt-24">
       {error && (
-        <div className={`mb-4 p-4 rounded-lg max-w-md transition-colors duration-300 ${
-          isDarkMode 
-            ? 'bg-red-600 text-white' 
-            : 'bg-red-100 text-red-800 border border-red-300'
-        }`}>
+        <div className="mb-4 p-4 bg-red-600 text-white rounded-lg max-w-md">
           {error}
         </div>
       )}
@@ -75,7 +65,7 @@ const VideoUpload = () => {
         onAnalyse={handleAnalyse}
         instructionList={[
           'Click the "Choose File" button',
-          'Select an MP4 file from your computer',
+          'Select a MP4 file from your computer',
           'To perform calculations and receive results, click the "Analyse" button',
           'If you choose the wrong file, click the "Remove" button to choose another one'
         ]}
