@@ -18,7 +18,7 @@ const VideoUpload = () => {
 
     try {
       // Use the Docker host IP instead of localhost
-      const response = await fetch('http://0.0.0.0:8000/upload-video/', {
+      const response = await fetch('http://localhost:8000/upload-video/', {
         method: 'POST',
         body: formData,
       })

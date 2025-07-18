@@ -301,7 +301,7 @@ function ManualMeasurement() {
       console.log('📐 3 points reached, calculating angle...');
       try {
         setIsLoading(true);
-        const response = await fetch('http://0.0.0.0:8000/measure/angle', {
+        const response = await fetch('http://localhost:8000/measure/angle', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -354,7 +354,7 @@ function ManualMeasurement() {
     console.log('⌨️ Enter key pressed, calculating area...');
     try {
       setIsLoading(true);
-      const response = await fetch('http://0.0.0.0:8000/measure/area', {
+      const response = await fetch('http://localhost:8000/measure/area', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -399,7 +399,7 @@ function ManualMeasurement() {
   const handleCalculateDistanceRatio = async (horizontalPts: number[][], verticalPts: number[][]) => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://0.0.0.0:8000/measure/distance-ratio', {
+      const response = await fetch('http://localhost:8000/measure/distance-ratio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -491,7 +491,7 @@ function ManualMeasurement() {
           formData.append('custom_name', frameData.customName);
         }
         
-        const response = await fetch('http://0.0.0.0:8000/session/save-canvas-frame', {
+        const response = await fetch('http://localhost:8000/session/save-canvas-frame', {
           method: 'POST',
           body: formData  // Don't set Content-Type header - let browser set it with boundary
         });
@@ -507,7 +507,7 @@ function ManualMeasurement() {
         console.log('📡 Using traditional backend frame endpoint');
         
         // Use traditional JSON endpoint for backend-captured frames
-        const response = await fetch('http://0.0.0.0:8000/session/save-measured-frame', {
+        const response = await fetch('http://localhost:8000/session/save-measured-frame', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

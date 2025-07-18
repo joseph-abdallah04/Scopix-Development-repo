@@ -66,7 +66,7 @@ const calculatePercentageChanges = (
  */
 export const downloadExcelFile = async (exportData: ExportData): Promise<void> => {
   try {
-    const response = await fetch('http://0.0.0.0:8000/session/export-results', {
+    const response = await fetch('http://localhost:8000/session/export-results', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

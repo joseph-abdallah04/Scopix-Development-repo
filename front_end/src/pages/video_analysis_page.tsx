@@ -85,7 +85,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
         params.append('is_paused', isPaused.toString());
       }
       
-      await fetch(`http://0.0.0.0:8000/session/update-position?${params}`, {
+      await fetch(`http://localhost:8000/session/update-position?${params}`, {
         method: 'POST'
       });
     } catch (error) {
@@ -98,7 +98,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
     const checkSession = async () => {
       try {
         console.log('Checking for active session...');
-        const response = await fetch('http://0.0.0.0:8000/session/current');
+        const response = await fetch('http://localhost:8000/session/current');
         
         if (response.ok) {
           const session = await response.json();
@@ -114,7 +114,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
           // If we have a session, we can load the video from the backend
           if (session.video_path) {
             console.log('Setting up video stream URL...');
-            const videoStreamUrl = `http://0.0.0.0:8000/session/video-file`;
+            const videoStreamUrl = `http://localhost:8000/session/video-file`;
             setVideoUrl(videoStreamUrl);
             
             // Store position to restore later when video loads - but don't override resume state
@@ -156,7 +156,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
     
     try {
       console.log('Loading measured frames from backend...');
-      const response = await fetch('http://0.0.0.0:8000/session/measured-frames');
+      const response = await fetch('http://localhost:8000/session/measured-frames');
       
       if (response.ok) {
         const data = await response.json();
@@ -202,7 +202,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
             customName: frame.custom_name,
             timestamp: frame.timestamp,
             frameIdx: frame.frame_idx,
-            thumbnailUrl: `http://0.0.0.0:8000/session/frame-thumbnail/${frame.frame_id}`,
+            thumbnailUrl: `http://localhost:8000/session/frame-thumbnail/${frame.frame_id}`,
             isBaseline: frame.frame_id === data.baseline_frame_id,
             measurements: measurements
           };
@@ -406,7 +406,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
 
 const getBackendVideoInfo = useCallback(async (): Promise<number> => {
   try {
-    const response = await fetch('http://0.0.0.0:8000/session/video-info');
+    const response = await fetch('http://localhost:8000/session/video-info');
     if (response.ok) {
       const data = await response.json();
       console.log(`🎬 Backend detected FPS: ${data.video_info.fps}`);
@@ -671,7 +671,7 @@ const handleLoadedMetadata = useCallback(async () => {
       console.log(`🎯 Canvas frame captured at EXACT time: ${actualTime}s, frame: ${actualFrameIdx}`);
       
       // Check if frame already exists using the exact frame index
-      const checkResponse = await fetch(`http://0.0.0.0:8000/session/check-frame/${actualFrameIdx}`);
+      const checkResponse = await fetch(`http://localhost:8000/session/check-frame/${actualFrameIdx}`);
       
       if (checkResponse.ok) {
         const checkResult = await checkResponse.json();
@@ -722,7 +722,7 @@ const handleLoadedMetadata = useCallback(async () => {
       } else {
         // Fallback to backend capture (for backwards compatibility)
         console.log('📡 Falling back to backend frame capture');
-        const response = await fetch(`http://0.0.0.0:8000/frame-capture/?timestamp=${timeToUse}&frame_idx=${frameIdxToUse}`, {
+        const response = await fetch(`http://localhost:8000/frame-capture/?timestamp=${timeToUse}&frame_idx=${frameIdxToUse}`, {
           method: 'GET',
         });
 
@@ -770,7 +770,7 @@ const handleLoadedMetadata = useCallback(async () => {
 
   const handleRenameFrame = async (frameId: string, newName: string) => {
     try {
-      const response = await fetch('http://0.0.0.0:8000/session/update-frame-name', {
+      const response = await fetch('http://localhost:8000/session/update-frame-name', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -798,7 +798,7 @@ const handleLoadedMetadata = useCallback(async () => {
 
   const handleDeleteFrame = async (frameId: string) => {
     try {
-      const response = await fetch(`http://0.0.0.0:8000/session/remove-frame/${frameId}`, {
+      const response = await fetch(`http://localhost:8000/session/remove-frame/${frameId}`, {
         method: 'DELETE',
       });
 
@@ -831,7 +831,7 @@ const handleLoadedMetadata = useCallback(async () => {
   // Add a function to handle setting a frame as the baseline
   const handleSetBaseline = async (frameId: string) => {
     try {
-      const response = await fetch(`http://0.0.0.0:8000/session/set-baseline/${frameId}`, {
+      const response = await fetch(`http://localhost:8000/session/set-baseline/${frameId}`, {
         method: 'POST',
       });
 
@@ -990,7 +990,7 @@ const handleLoadedMetadata = useCallback(async () => {
       cleanupVideoElement();
       
       // Clear the session when going back to upload
-      await fetch('http://0.0.0.0:8000/session/clear', { method: 'POST' });
+      await fetch('http://localhost:8000/session/clear', { method: 'POST' });
     } catch (error) {
       console.error('Error clearing session:', error);
     }
@@ -1026,7 +1026,7 @@ const handleLoadedMetadata = useCallback(async () => {
         cleanupVideoElement();
         
         // Clear session after successful export
-        await fetch('http://0.0.0.0:8000/session/clear', { method: 'POST' });
+        await fetch('http://localhost:8000/session/clear', { method: 'POST' });
 
         // Navigate back to upload after export
         navigate('/video-upload');

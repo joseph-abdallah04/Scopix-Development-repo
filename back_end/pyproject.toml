@@ -11,6 +11,7 @@ dependencies = [
     "matplotlib>=3.10.3",
     "moviepy>=2.2.1",
     "opencv-python-headless>=4.11.0.86",
+    "openpyxl>=3.1.5",
     "orjson>=3.11.0",
     "pandas>=2.3.0",
     "physio>=0.2.0",
@@ -18,5 +19,6 @@ dependencies = [
     "pytest>=8.4.1",
     "python-multipart>=0.0.20",
     "reportlab>=4.4.2",
+    "scikit-image>=0.25.2",
     "uvicorn>=0.23.2",
 ]

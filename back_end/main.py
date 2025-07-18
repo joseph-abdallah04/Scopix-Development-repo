@@ -40,9 +40,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",  # Add this if your frontend runs on 5174
         "http://0.0.0.0:5173",
+        "http://0.0.0.0:5174",    # Add this if needed
         "http://127.0.0.1:5173",
-        "http://192.168.65.1:5173" # Joseph's docker container host IP
+        "http://127.0.0.1:5174",  # Add this if needed
+        "http://192.168.65.1:5173", # Joseph's docker container host IP
+        "http://192.168.65.1:5174", # Add this for port 5174
     ], # The Vite dev server
     allow_credentials=True,
     allow_methods=["*"],
