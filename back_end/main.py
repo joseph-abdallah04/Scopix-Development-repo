@@ -13,6 +13,7 @@ from datetime import datetime
 from Resp_Analysis.resp_modules.csv_validation import validate_csv_bytes
 from api.plotter_api import router as plotter_api 
 from api.upload_and_downland_api import router as upload_and_downland_api
+from api.export_api import router as export_api
 from video_validation import validate_video_file
 # Import other logic
 from frame_capture import capture_frame
@@ -34,6 +35,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(plotter_api)
 app.include_router(upload_and_downland_api)
+app.include_router(export_api)
 
 # Add CORS Middleware
 app.add_middleware(

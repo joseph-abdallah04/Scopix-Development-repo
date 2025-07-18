@@ -35,16 +35,29 @@ function CSVResultsPage() {
     setLoading(false)
   }, [chartData, segmentData])
 
-  const handleExport = () => {
-    const blob = new Blob([JSON.stringify(chartData, null, 2)], { type: 'application/json' })
+const handleExport = async () => {
+  try {
+    const response = await fetch("http://localhost:8000/export-zip/", {
+      method: "GET",
+    })
+
+    if (!response.ok) {
+      throw new Error("Export failed.")
+    }
+
+    const blob = await response.blob()
     const url = URL.createObjectURL(blob)
 
     const a = document.createElement("a")
     a.href = url
-    a.download = "analysis_result.json"
+    a.download = "report.zip"
     a.click()
     URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error(err)
+    alert("Failed to export report.")
   }
+}
 
   const handleBack = () => {
     clearResult()

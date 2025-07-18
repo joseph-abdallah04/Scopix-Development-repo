@@ -8,7 +8,6 @@ import os, json, tempfile
 from typing import List, Tuple
 import pandas as pd
 
-
 def process_file(filepath: str) -> Tuple[str, List[dict]]:
     basename = os.path.splitext(os.path.basename(filepath))[0]
 
@@ -32,11 +31,10 @@ def process_file(filepath: str) -> Tuple[str, List[dict]]:
 
         print(f"[✓] {basename}, breaths: {len(breath_segments)}")
         
-        return basename, vis_df.to_dict(orient="records")
+        return basename, vis_df, df
 
     except Exception as e:
         raise RuntimeError(f"[ERROR] Failed to process {basename}: {e}") from e
-
 
 def generate_report_files(df: pd.DataFrame, vis_df: pd.DataFrame) -> BytesIO:
     csv_buf = dataframe_bytesio(vis_df)
