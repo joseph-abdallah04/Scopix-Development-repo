@@ -63,7 +63,7 @@ function ManualMeasurement() {
   const [selectedAreaType, setSelectedAreaType] = useState<'glottic_area' | 'supraglottic_area' | null>(null);
   const [selectedDistanceType, setSelectedDistanceType] = useState<'distance_ratio' | null>(null);
   const [distanceMeasurementStep, setDistanceMeasurementStep] = useState<'horizontal' | 'vertical' | null>(null);
-  const [horizontalPoints, setHorizontalPoints] = useState<number[][]>([]);
+  // const [horizontalPoints, setHorizontalPoints] = useState<number[][]>([]);
 
   const initialState: MeasurementState = {
     measurements: {},

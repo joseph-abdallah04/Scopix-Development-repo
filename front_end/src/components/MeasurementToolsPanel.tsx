@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { FiRotateCcw, FiRotateCw, FiTrash2, FiSquare } from 'react-icons/fi';
 
 interface AreaMeasurement {
