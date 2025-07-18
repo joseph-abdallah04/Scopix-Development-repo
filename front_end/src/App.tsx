@@ -8,6 +8,7 @@ import CsvUpload from "./pages/csv_upload"
 import VideoUpload from "./pages/video_upload"
 import VideoAnalysis from "./pages/video_analysis_page" 
 import { ThemeProvider, useTheme } from "./contexts/theme-context"
+import ManualMeasurement from "./pages/manual_measurement"
 
 const AppContent: React.FC = () => {
   const location = useLocation()
@@ -29,6 +30,7 @@ const AppContent: React.FC = () => {
           <Route path="/video-upload" element={<VideoUpload />} />
           <Route path="/video-analysis" element={<VideoAnalysis />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/manual-measurement" element={<ManualMeasurement />} />
         </Routes>
       </main>
     </div>
