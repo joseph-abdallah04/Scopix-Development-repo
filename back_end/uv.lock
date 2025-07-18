@@ -35,17 +35,21 @@ name = "back-end"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "chardet" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "joblib" },
     { name = "matplotlib" },
     { name = "moviepy" },
     { name = "numpy" },
     { name = "opencv-python-headless" },
     { name = "openpyxl" },
     { name = "pandas" },
+    { name = "physio" },
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "python-multipart" },
+    { name = "reportlab" },
     { name = "requests" },
     { name = "scikit-image" },
     { name = "uvicorn" },
@@ -53,17 +57,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "chardet", specifier = ">=5.2.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.2" },
+    { name = "joblib", specifier = ">=1.5.1" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "moviepy", specifier = ">=2.2.1" },
     { name = "numpy", specifier = ">=2.3.0" },
     { name = "opencv-python-headless", specifier = ">=4.11.0.86" },
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.3.0" },
+    { name = "physio", specifier = ">=0.2.0" },
     { name = "pillow", specifier = ">=11.2.1" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "reportlab", specifier = ">=4.4.2" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "uvicorn", specifier = ">=0.23.2" },
@@ -76,6 +84,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/73/f7/f14b46d4bcd21092d7d3ccef689615220d8a08fb25e564b65d20738e672e/certifi-2025.6.15.tar.gz", hash = "sha256:d747aa5a8b9bbbb1bb8c22bb13e22bd1f18e9796defa16bab421f7f7a317323b", size = 158753, upload-time = "2025-06-15T02:45:51.329Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/ae/320161bd181fc06471eed047ecce67b693fd7515b16d495d8932db763426/certifi-2025.6.15-py3-none-any.whl", hash = "sha256:2e0c7ce7cb5d8f8634ca55d2ba7e6ec2689a2fd6537d8dec1296a477a4910057", size = 157650, upload-time = "2025-06-15T02:45:49.977Z" },
+]
+
+[[package]]
+name = "chardet"
+version = "5.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/0d/f7b6ab21ec75897ed80c17d79b15951a719226b9fababf1e40ea74d69079/chardet-5.2.0.tar.gz", hash = "sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7", size = 2069618, upload-time = "2023-08-01T19:23:02.662Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/6f/f5fbc992a329ee4e0f288c1fe0e2ad9485ed064cac731ed2fe47dcc38cbf/chardet-5.2.0-py3-none-any.whl", hash = "sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970", size = 199385, upload-time = "2023-08-01T19:23:00.661Z" },
 ]
 
 [[package]]
@@ -409,6 +426,15 @@ wheels = [
 ]
 
 [[package]]
+name = "joblib"
+version = "1.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/dc/fe/0f5a938c54105553436dbff7a61dc4fed4b1b2c98852f8833beaf4d5968f/joblib-1.5.1.tar.gz", hash = "sha256:f4f86e351f39fe3d0d32a9f2c3d8af1ee4cec285aafcb27003dda5205576b444", size = 330475, upload-time = "2025-05-23T12:04:37.097Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/4f/1195bbac8e0c2acc5f740661631d8d750dc38d4a32b23ee5df3cde6f4e0d/joblib-1.5.1-py3-none-any.whl", hash = "sha256:4719a31f054c7d766948dcd83e9613686b27114f190f717cec7eaa2084f8a74a", size = 307746, upload-time = "2025-05-23T12:04:35.124Z" },
+]
+
+[[package]]
 name = "kiwisolver"
 version = "1.4.8"
 source = { registry = "https://pypi.org/simple" }
@@ -586,6 +612,20 @@ wheels = [
 ]
 
 [[package]]
+name = "neo"
+version = "0.14.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "quantities" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0e/47/ebc266619ea7f1e8025ba057ab446c14423b1265ec9c6810fa3a3fb02de4/neo-0.14.2.tar.gz", hash = "sha256:76517503e114fffcc38aa3600c04dd8be48b1ee5e2c8162bc0db8fb92476811f", size = 5067423, upload-time = "2025-07-08T13:12:54.508Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/e1/16f4f07a65bb952eb99897a4ad6fedbec9e3d8a394e5baa2bc3a97713e0e/neo-0.14.2-py3-none-any.whl", hash = "sha256:ca4e605ffdba944e53cd035e43c0dbeff45efbb1ed00ae0c61c0d49f08ef2b94", size = 679538, upload-time = "2025-07-08T13:12:52.062Z" },
+]
+
+[[package]]
 name = "networkx"
 version = "3.5"
 source = { registry = "https://pypi.org/simple" }
@@ -705,6 +745,22 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/15/aa/3fc3181d12b95da71f5c2537c3e3b3af6ab3a8c392ab41ebb766e0929bc6/pandas-2.3.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1a881bc1309f3fce34696d07b00f13335c41f5f5a8770a33b09ebe23261cfc67", size = 11966182, upload-time = "2025-06-05T03:27:47.652Z" },
     { url = "https://files.pythonhosted.org/packages/37/e7/e12f2d9b0a2c4a2cc86e2aabff7ccfd24f03e597d770abfa2acd313ee46b/pandas-2.3.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:e1991bbb96f4050b09b5f811253c4f3cf05ee89a589379aa36cd623f21a31d6f", size = 12547686, upload-time = "2025-06-06T00:00:26.142Z" },
     { url = "https://files.pythonhosted.org/packages/39/c2/646d2e93e0af70f4e5359d870a63584dacbc324b54d73e6b3267920ff117/pandas-2.3.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:bb3be958022198531eb7ec2008cfc78c5b1eed51af8600c6c5d9160d89d8d249", size = 13231847, upload-time = "2025-06-05T03:27:51.465Z" },
+]
+
+[[package]]
+name = "physio"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "neo" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/99/66/e926a333463ef48ea03290c6db2268cabacd2dc84d4c988af26b60c3a122/physio-0.2.0.tar.gz", hash = "sha256:be4a1598e4844000cde346e2632cc8a5367951691d3b6e0494772bdcba3a38d7", size = 19025, upload-time = "2024-02-06T14:46:16.002Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d0/a5/18c508babcbe5241b9fd6232178a1984d4a148494d546cc3c99ce773cc68/physio-0.2.0-py3-none-any.whl", hash = "sha256:b85872e64c74cff0cbd6090c5901ca275c71160162603bd4869cadf6acec1279", size = 20157, upload-time = "2024-02-06T14:46:13.63Z" },
 ]
 
 [[package]]
@@ -923,6 +979,31 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/0f/25911a9f080464c59fab9027482f822b86bf0608957a5fcc6eaac85aa515/PyYAML-6.0.2-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:68ccc6023a3400877818152ad9a1033e3db8625d899c72eacb5a668902e4d652", size = 751597, upload-time = "2024-08-06T20:32:56.985Z" },
     { url = "https://files.pythonhosted.org/packages/14/0d/e2c3b43bbce3cf6bd97c840b46088a3031085179e596d4929729d8d68270/PyYAML-6.0.2-cp313-cp313-win32.whl", hash = "sha256:bc2fa7c6b47d6bc618dd7fb02ef6fdedb1090ec036abab80d4681424b84c1183", size = 140527, upload-time = "2024-08-06T20:33:03.001Z" },
     { url = "https://files.pythonhosted.org/packages/fa/de/02b54f42487e3d3c6efb3f89428677074ca7bf43aae402517bc7cca949f3/PyYAML-6.0.2-cp313-cp313-win_amd64.whl", hash = "sha256:8388ee1976c416731879ac16da0aff3f63b286ffdd57cdeb95f3f2e085687563", size = 156446, upload-time = "2024-08-06T20:33:04.33Z" },
+]
+
+[[package]]
+name = "quantities"
+version = "0.16.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/b4/a14dbeebf8ab08600152f157344fd88db961a3afdfd0eddc25958c5182a1/quantities-0.16.2.tar.gz", hash = "sha256:1f7c24f10d9ff57ddf751a358ea2fdfa9914516722f06a788ef4a2924c77d21c", size = 101862, upload-time = "2025-04-11T14:16:12.154Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/0c/b4ee3f929bbe564101f110080dcdd33d1181a6f8a041cc9e21d992509b52/quantities-0.16.2-py3-none-any.whl", hash = "sha256:bd5b1ed422770b7cd8952ccfccaf67a89024ae0ecb31b1eacbc7ff966899ab34", size = 103021, upload-time = "2025-04-11T14:16:10.524Z" },
+]
+
+[[package]]
+name = "reportlab"
+version = "4.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "charset-normalizer" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ec/9b/3483c7e4ad33d15f22d528872439e5bc92485814d7e7d10dbc3130368a83/reportlab-4.4.2.tar.gz", hash = "sha256:fc6283048ddd0781a9db1d671715990e6aa059c8d40ec9baf34294c4bd583a36", size = 3509063, upload-time = "2025-06-18T12:20:19.526Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9f/74/ed990bc9586605d4e46f6b0e0b978a5b8e757aa599e39664bee26d6dc666/reportlab-4.4.2-py3-none-any.whl", hash = "sha256:58e11be387457928707c12153b7e41e52533a5da3f587b15ba8f8fd0805c6ee2", size = 1953624, upload-time = "2025-06-18T12:20:16.152Z" },
 ]
 
 [[package]]

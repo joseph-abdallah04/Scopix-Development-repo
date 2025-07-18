@@ -9,7 +9,7 @@ import shutil
 from typing import Dict, Optional, List, Any
 from datetime import datetime
 # Import our validation modules
-from csv_validation import validate_csv_file
+from Resp_Analysis.resp_modules.csv_validation import validate_csv_bytes
 from video_validation import validate_video_file
 # Import other logic
 from frame_capture import capture_frame
@@ -107,7 +107,7 @@ async def upload_csv_file(file: UploadFile = File(...)):
         temp_file.flush()  # Ensure content is written to disk
         
         # Validate the CSV file
-        validation_result = validate_csv_file(temp_file.name)
+        validation_result = validate_csv_bytes(temp_file.name)
         
         if not validation_result["valid"]:
             return JSONResponse(
