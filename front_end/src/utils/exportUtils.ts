@@ -30,29 +30,29 @@ const calculatePercentageChanges = (
   const currentMeasurements = currentFrame.measurements || {};
   const baselineMeasurements = baselineFrame.measurements || {};
 
-  // Calculate angle percentage changes
+  // Calculate angle percentage changes (using baseline - current formula)
   if (currentMeasurements.glottic_angle !== undefined && baselineMeasurements.glottic_angle !== undefined) {
-    const change = ((currentMeasurements.glottic_angle - baselineMeasurements.glottic_angle) / baselineMeasurements.glottic_angle) * 100;
+    const change = ((baselineMeasurements.glottic_angle - currentMeasurements.glottic_angle) / baselineMeasurements.glottic_angle) * 100;
     percentages.glottic_angle_closure = change;
   }
 
   if (currentMeasurements.supraglottic_angle !== undefined && baselineMeasurements.supraglottic_angle !== undefined) {
-    const change = ((currentMeasurements.supraglottic_angle - baselineMeasurements.supraglottic_angle) / baselineMeasurements.supraglottic_angle) * 100;
+    const change = ((baselineMeasurements.supraglottic_angle - currentMeasurements.supraglottic_angle) / baselineMeasurements.supraglottic_angle) * 100;
     percentages.supraglottic_angle_closure = change;
   }
 
-  // Calculate area percentage changes
+  // Calculate area percentage changes (using baseline - current formula)
   if (currentMeasurements.glottic_area !== undefined && baselineMeasurements.glottic_area !== undefined) {
-    const change = ((currentMeasurements.glottic_area - baselineMeasurements.glottic_area) / baselineMeasurements.glottic_area) * 100;
+    const change = ((baselineMeasurements.glottic_area - currentMeasurements.glottic_area) / baselineMeasurements.glottic_area) * 100;
     percentages.glottic_area_closure = change;
   }
 
   if (currentMeasurements.supraglottic_area !== undefined && baselineMeasurements.supraglottic_area !== undefined) {
-    const change = ((currentMeasurements.supraglottic_area - baselineMeasurements.supraglottic_area) / baselineMeasurements.supraglottic_area) * 100;
+    const change = ((baselineMeasurements.supraglottic_area - currentMeasurements.supraglottic_area) / baselineMeasurements.supraglottic_area) * 100;
     percentages.supraglottic_area_closure = change;
   }
 
-  // Calculate distance ratio changes
+  // Calculate distance ratio changes (using current - baseline formula)
   if (currentMeasurements.distance_ratio?.ratio_percentage !== undefined && baselineMeasurements.distance_ratio?.ratio_percentage !== undefined) {
     const change = ((currentMeasurements.distance_ratio.ratio_percentage - baselineMeasurements.distance_ratio.ratio_percentage) / baselineMeasurements.distance_ratio.ratio_percentage) * 100;
     percentages.distance_ratio_change = change;

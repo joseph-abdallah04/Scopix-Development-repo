@@ -100,10 +100,10 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
 
   // Calculate percentage change for distance ratio
   const calculatePercentageChange = (current: number | null | undefined, baseline: number | null | undefined): number | null => {
-    if (current === null || current === undefined || baseline === null || baseline === undefined) {
+    if (current === null || current === undefined || baseline === null || baseline === undefined || baseline === 0) {
       return null;
     }
-    return current - baseline; // Simple difference for distance ratio
+    return ((current - baseline) / baseline) * 100;
   };
 
   // Format measurement value with units
