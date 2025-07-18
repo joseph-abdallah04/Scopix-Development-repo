@@ -2,18 +2,19 @@ import cv2
 import os
 import numpy as np
 import logging
+from typing import Optional
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
-def capture_frame(file_path: str, timestamp: float = None, frame_idx: int = None) -> bytes:
+def capture_frame(file_path: str, timestamp: Optional[float] = None, frame_idx: Optional[int] = None) -> bytes:
     """
     Extract a frame from a video file at a given timestamp (in seconds) or frame index.
     Returns the frame as JPEG bytes.
     """
 
     # Check if file path exists
-    if not is.path.exists(file_path):
+    if not os.path.exists(file_path):
         logger.error(f"Video file does not existL {file_path}")
         raise FileNotFoundError(f"Cannot find video file: {file_path}")
     
