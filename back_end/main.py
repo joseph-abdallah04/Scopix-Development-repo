@@ -54,7 +54,7 @@ app.add_middleware(
 )
 
 # Directory to store videos - Creates directory if it doesn't already exist
-VIDEO_STORAGE_DIR = "/tmp/current_video"
+VIDEO_STORAGE_DIR = os.path.join(tempfile.gettempdir(), "current_video")
 os.makedirs(VIDEO_STORAGE_DIR, exist_ok=True)
 
 class PointsRequest(BaseModel):
@@ -791,7 +791,7 @@ async def get_session_video_file():
         )
 
     return FileResponse(
-        video_path,
+        os.path.abspath(video_path),
         media_type="video/mp4",
         filename="video.mp4"
     )
