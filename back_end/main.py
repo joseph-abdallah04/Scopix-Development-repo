@@ -851,3 +851,7 @@ async def export_results_with_calculated_data(request: Request):
     except Exception as e:
         logger.error(f"Export failed: {e}")
         raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
