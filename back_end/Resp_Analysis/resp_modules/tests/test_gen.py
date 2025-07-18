@@ -5,6 +5,7 @@ import pandas as pd
 from resp_modules import ImpCalc, Resp_seg, reshape_for_visualization
 
 def process_file(filepath: str, output_dir: str, segmenter: Resp_seg, imp_calc: ImpCalc):
+    basename = os.path.splitext(os.path.basename(filepath))[0]
     sub_output_dir = os.path.join(output_dir, basename)
     os.makedirs(sub_output_dir, exist_ok=True)
 
