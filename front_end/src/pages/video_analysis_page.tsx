@@ -16,18 +16,18 @@ interface VideoAnalysisPageProps {
 interface SavedFrame {
   id: string;
   name: string;
-  customName?: string;  // Add this field
+  customName?: string;
   timestamp: number;
   frameIdx?: number;
   thumbnailUrl?: string;
   isBaseline: boolean;
-  measurements: Array<{
-    id: string;
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-  }>;
+  measurements: {
+    glottic_angle: number | null;
+    supraglottic_angle: number | null;
+    glottic_area: number | null;
+    supraglottic_area: number | null;
+    // Add other measurement properties as needed
+  };
 }
 
 function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
@@ -35,7 +35,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   const navigate = useNavigate();
   
   // Get session info from upload or check if session exists
-  const sessionInfo = location.state?.sessionInfo;
+  // const sessionInfo = location.state?.sessionInfo;
   const uploadedFile = propFile || location.state?.file;
   
   // Resume state from navigation (when coming back from manual measurement)
@@ -70,7 +70,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   const [backendFrameCount, setBackendFrameCount] = useState<number | null>(null);
 
   // Calculate frame duration and total frames
-  const frameDuration = 1 / fps;
+  // const frameDuration = 1 / fps;
   const totalFrames = backendFrameCount ?? Math.floor(duration * fps);
 
   // Function to update position in session
@@ -338,14 +338,14 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
     return Math.max(0, Math.min(totalFrames - 1, frameIdx));
   }, [fps, totalFrames]);
 
-  const seekToFrame = useCallback((frameIndex: number) => {
-    if (!videoRef.current) return;
-    const clampedFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
-    const exactTime = frameToTime(clampedFrame);
-    videoRef.current.currentTime = exactTime;
-    setCurrentTime(exactTime);
-    setCurrentFrameIdx(clampedFrame);
-  }, [frameToTime, totalFrames]);
+  // const seekToFrame = useCallback((frameIndex: number) => {
+  //   if (!videoRef.current) return;
+  //   const clampedFrame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
+  //   const exactTime = frameToTime(clampedFrame);
+  //   videoRef.current.currentTime = exactTime;
+  //   setCurrentTime(exactTime);
+  //   setCurrentFrameIdx(clampedFrame);
+  // }, [frameToTime, totalFrames]);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current && !isDragging) {

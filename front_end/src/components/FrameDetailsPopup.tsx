@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 import ConfirmationPopup from './ConfirmationPopup'; // Add this import
 
-interface MeasurementValue {
-  value: number | null;
-  percentageClosure: number | null;
-}
+// interface MeasurementValue {
+//   value: number | null;
+//   percentageClosure: number | null;
+// }
 
 interface FrameDetailsPopupProps {
   isOpen: boolean;
@@ -33,6 +33,7 @@ interface FrameDetailsPopupProps {
     };
   } | null;
   baselineFrame: {
+    id: string;
     measurements: {
       glottic_angle?: number | null;
       supraglottic_angle?: number | null;

@@ -38,8 +38,11 @@ interface SavedFramesProps {
   className?: string;
   onRenameFrame?: (frameId: string, newName: string) => void;
   onSetBaseline?: (frameId: string) => void;
-  onDeleteFrame?: (frameId: string) => void; // Add this back but only for passing to popup
+  onDeleteFrame?: (frameId: string) => void;
   isExporting?: boolean;
+  currentFrameIdx?: number;
+  totalFrames?: number;
+  fps?: number;
 }
 
 const SavedFrames: React.FC<SavedFramesProps> = ({
@@ -49,12 +52,15 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
   onBack,
   onExport,
   formatTime,
-  showExportButton = true,
+  // showExportButton = true,
   className = "",
   onRenameFrame,
   onSetBaseline,
-  onDeleteFrame, // Destructure the delete handler
+  onDeleteFrame,
   isExporting = false,
+  // currentFrameIdx,
+  // totalFrames,
+  // fps,
 }) => {
   const [renamingFrameId, setRenamingFrameId] = useState<string | null>(null);
   const [newFrameName, setNewFrameName] = useState<string>("");
