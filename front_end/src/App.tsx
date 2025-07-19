@@ -1,5 +1,5 @@
 import React from "react"
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom"
+import { HashRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom"
 
 import NavBar from "./components/nav_bar"
 import CsvResultsPage from "./pages/csv_results_page"
