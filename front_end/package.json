@@ -15,20 +15,20 @@
   },
   "build": {
     "appId": "com.example.rnshapp",
+    "electronVersion": "37.2.3",
     "productName": "RNSH App",
     "files": [
-      "dist/**/*",
+      "dist-frontend/**/*",
       "main.*js",
       "preload.js",
-      "backend/server.exe",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__}/**",
       "!**/*.map"
     ],
     "extraResources": [
       {
-        "from": "backend/server.exe",
-        "to": "server.exe"
+        "from": "dist-backend/server",
+        "to": "server"
       }
     ],
     "directories": {

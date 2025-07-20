@@ -29,7 +29,7 @@ def process_file(filepath: str) -> Tuple[str, List[dict]]:
         merged_df = pd.merge(result_df, breath_segments, on="breath_index", how="left")
         vis_df = reshape_for_visualization(merged_df)
 
-        print(f"[✓] {basename}, breaths: {len(breath_segments)}")
+        print(f"{basename}, breaths: {len(breath_segments)}")
         
         return basename, vis_df, df
 

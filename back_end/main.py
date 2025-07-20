@@ -1,7 +1,10 @@
+import multiprocessing
+multiprocessing.freeze_support()
+
+
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Form, Request
 from fastapi.responses import JSONResponse, Response, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 import tempfile
 import logging
 import uuid
@@ -24,14 +27,12 @@ from pydantic import BaseModel
 import json
 import io
 
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.include_router(plotter_api)
 app.include_router(upload_and_downland_api)
@@ -40,16 +41,7 @@ app.include_router(export_api)
 # Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",  # Add this if your frontend runs on 5174
-        "http://0.0.0.0:5173",
-        "http://0.0.0.0:5174",    # Add this if needed
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",  # Add this if needed
-        "http://192.168.65.1:5173", # Joseph's docker container host IP
-        "http://192.168.65.1:5174", # Add this for port 5174
-    ], # The Vite dev server
+    allow_origins=["*"], # The Vite dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -650,7 +642,7 @@ async def save_canvas_captured_frame(request: Request):
                 content={"error": "Canvas image is required"}
             )
         
-        print(f"🎯 Saving canvas-captured frame: time={timestamp}, frame={frame_idx}")
+        print(f"Saving canvas-captured frame: time={timestamp}, frame={frame_idx}")
         
         # Check if frame already exists
         existing_frame = session_manager.check_frame_exists(frame_idx)
@@ -698,7 +690,7 @@ async def save_canvas_captured_frame(request: Request):
         
         frame_id = session_manager.add_measured_frame(frame_data)
         
-        print(f"✅ Canvas frame saved successfully with ID: {frame_id}")
+        print(f"Canvas frame saved successfully with ID: {frame_id}")
         
         return JSONResponse(content={
             "message": "Canvas frame saved successfully",
@@ -854,5 +846,7 @@ async def export_results_with_calculated_data(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, workers=1)
+    
 
