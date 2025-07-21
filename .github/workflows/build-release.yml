@@ -1,0 +1,86 @@
+name: Build Electron App for All Platforms
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          cache-dependency-path: front_end/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: front_end
+        run: pnpm install
+
+      - name: Build frontend
+        working-directory: front_end
+        run: pnpm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+
+      - name: Install Python deps
+        working-directory: back_end
+        run: uv sync
+
+      - name: Build backend executable
+        working-directory: back_end
+        run: |
+         uv run pyinstaller --onedir --noconfirm --clean --name server --hidden-import=fastapi --hidden-import=starlette --hidden-import=pydantic --hidden-import=uvicorn ./main.py
+
+      - name: Copy backend folder into frontend
+        run: |
+          mkdir -p front_end/dist-backend
+          node -e "
+            require('fs').cpSync(
+              'back_end/dist/server',
+              'front_end/dist-backend/server',
+              { recursive: true }
+            )
+          "
+
+      - name: Build Electron app
+        working-directory: front_end
+        run: |
+          pnpm dist
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            front_end/release/*.dmg
+            front_end/release/*.exe
+            front_end/release/*.AppImage
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
