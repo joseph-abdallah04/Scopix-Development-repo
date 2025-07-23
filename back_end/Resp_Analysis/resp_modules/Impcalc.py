@@ -95,7 +95,7 @@ class ImpCalc:
             print(f"[ERROR] Missing required columns: {e}")
             return iter(())
 
-        results = Parallel(n_jobs=-1)(
+        results = Parallel(n_jobs=1)(
             delayed(self._safe_process_breath)(i, b, index_array, data_cache, r5_19, volume)
             for i, b in enumerate(breaths.itertuples(index=False))
         )

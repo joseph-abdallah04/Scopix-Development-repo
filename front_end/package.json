@@ -3,11 +3,50 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "main.mjs",
   "scripts": {
     "dev": "vite",
+    "start": "electron .",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.example.rnshapp",
+    "electronVersion": "37.2.3",
+    "productName": "RNSH App",
+    "files": [
+      "dist-frontend/**/*",
+      "main.*js",
+      "preload.js",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__}/**",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "dist-backend/server",
+        "to": "server"
+      }
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
@@ -27,6 +66,7 @@
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.21",
     "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
