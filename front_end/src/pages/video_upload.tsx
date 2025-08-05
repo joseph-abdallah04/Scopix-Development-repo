@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FileUploadCard from '../components/file_upload_card'
 import { useTheme } from '../contexts/theme-context'
@@ -8,6 +8,12 @@ const VideoUpload = () => {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { isDarkMode } = useTheme()
+
+  // Reset component state when component mounts
+  useEffect(() => {
+    setIsUploading(false)
+    setError(null)
+  }, [])
 
   const handleAnalyse = async (file: File) => {
     setIsUploading(true)

@@ -9,7 +9,12 @@ import type { ColumnDef } from "@tanstack/react-table"
 
 type DataRow = Record<string, string | number | null>
 
-export default function PreviewTable({ data }: { data: DataRow[] }) {
+interface PreviewTableProps {
+  data: DataRow[]
+  isFullscreen?: boolean
+}
+
+export default function PreviewTable({ data, isFullscreen = false }: PreviewTableProps) {
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 15
 
@@ -46,45 +51,55 @@ export default function PreviewTable({ data }: { data: DataRow[] }) {
   const currentRows = table.getPaginationRowModel().rows
 
   return (
-    <div className="relative w-full overflow-x-auto rounded-xl border p-4 pt-4 shadow bg-white text-sm">
-      <table className="table-auto w-full border-collapse mt-4">
-        <thead className="bg-gray-100">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id} className="border px-3 py-2 text-left">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {currentRows.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="text-center py-4 text-gray-500">
-                No data
-              </td>
-            </tr>
-          ) : (
-            currentRows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="border px-3 py-1">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+    <div className={`w-full rounded-xl border shadow bg-white text-sm ${
+      isFullscreen ? 'h-full flex flex-col' : ''
+    }`}>
+      {/* Scrollable table container */}
+      <div className={`overflow-x-auto ${
+        isFullscreen ? 'flex-1 p-4' : 'p-4 pt-4'
+      }`}>
+        <table className="table-auto w-full border-collapse mt-4">
+          <thead className="bg-gray-100">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} className="border px-3 py-2 text-left">
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
                 ))}
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ))}
+          </thead>
+          <tbody>
+            {currentRows.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} className="text-center py-4 text-gray-500">
+                  No data
+                </td>
+              </tr>
+            ) : (
+              currentRows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="border px-3 py-1">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      <div className="flex justify-between items-center mt-4 text-sm">
+      {/* Pagination controls - outside scrollable area */}
+      <div className={`flex justify-between items-center p-4 text-sm border-t ${
+        isFullscreen ? 'flex-shrink-0' : ''
+      }`}>
         <button
           onClick={() => setPageIndex((i) => Math.max(0, i - 1))}
           disabled={pageIndex === 0}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
         >
           Previous
         </button>
@@ -98,7 +113,7 @@ export default function PreviewTable({ data }: { data: DataRow[] }) {
             )
           }
           disabled={pageIndex >= table.getPageCount() - 1}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
         >
           Next
         </button>

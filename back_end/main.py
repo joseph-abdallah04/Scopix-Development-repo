@@ -13,7 +13,6 @@ import shutil
 from typing import Dict, Optional, List, Any
 from datetime import datetime
 # Import our validation modules
-from Resp_Analysis.resp_modules.csv_validation import validate_csv_bytes
 from api.plotter_api import router as plotter_api 
 from api.upload_and_downland_api import router as upload_and_downland_api
 from api.export_api import router as export_api
@@ -37,6 +36,11 @@ app = FastAPI()
 app.include_router(plotter_api)
 app.include_router(upload_and_downland_api)
 app.include_router(export_api)
+
+@app.get("/api/test")
+async def health_check():
+    """Health check endpoint to verify backend is running"""
+    return {"status": "ok", "message": "Backend service is running"}
 
 # Add CORS Middleware
 app.add_middleware(

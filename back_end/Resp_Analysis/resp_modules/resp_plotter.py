@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from io import BytesIO
 
-def plot_r5_x5_volume(data: pd.DataFrame, fs: int = 200) -> BytesIO:
+def RespiratoryPlotter(data: pd.DataFrame, fs: int = 200) -> BytesIO:
     if data.empty:
         raise ValueError("Input DataFrame is empty and cannot be plotted.")
         

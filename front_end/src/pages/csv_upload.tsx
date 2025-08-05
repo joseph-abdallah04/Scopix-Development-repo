@@ -1,4 +1,5 @@
 // src/pages/CSVUpload.tsx
+import { useEffect } from 'react'
 import FileUploadCard from '../components/file_upload_card'
 import { useTheme } from '../contexts/theme-context'
 import { useNavigate } from 'react-router-dom'
@@ -10,6 +11,12 @@ const CSVUpload = () => {
 
   const setResult = useCSVResultStore((state) => state.setResult)
   const setSegmentData = useCSVResultStore((state) => state.setSegmentData)
+  const clearResult = useCSVResultStore((state) => state.clearResult)
+
+  // Clear any existing results when entering the upload page
+  useEffect(() => {
+    clearResult()
+  }, [clearResult])
 
   const handleAnalyse = async (file: File) => {
   try {
@@ -51,7 +58,7 @@ const CSVUpload = () => {
       isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
     }`}>
       <FileUploadCard
-        accept=".csv"
+        accept=".csv, .xlsx"
         buttonLabel="Analyse"
         fileLabel="Choose file"
         onAnalyse={handleAnalyse}

@@ -6,7 +6,7 @@ import tempfile, shutil, os
 from Resp_Analysis.main_proc import process_file, generate_report_files
 
 router = APIRouter()
-last_processed_result: tuple[str, pd.DataFrame, pd.DataFrame] | None = None
+last_processed_result: tuple[str, pd.DataFrame, pd.DataFrame, pd.DataFrame] | None = None
 
 @router.get("/export-zip/")
 async def export_zip():
@@ -15,7 +15,7 @@ async def export_zip():
     if not last_processed_result:
         raise HTTPException(status_code=400, detail="No processed result available.")
 
-    basename, df, vis_df = last_processed_result
+    basename, vis_df, df = last_processed_result
 
     try:
         zip_buf = generate_report_files(df, vis_df)

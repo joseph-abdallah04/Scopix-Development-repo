@@ -147,18 +147,34 @@ function stopBackend() {
   }
 }
 
-// === 应用生命周期 ===
-app.whenReady().then(async () => {
-  try {
-    console.log('Launching RNSH Desktop App...');
-    await startBackend();
-    console.log('Backend started successfully');
-    createWindow();
-  } catch (err) {
-    console.error('Failed to start backend:', err);
-    app.quit();
-  }
-});
+// === 单实例检查 ===
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('Another instance is already running');
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window instead
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  // === 应用生命周期 ===
+  app.whenReady().then(async () => {
+    try {
+      console.log('Launching RNSH Desktop App...');
+      await startBackend();
+      console.log('Backend started successfully');
+      createWindow();
+    } catch (err) {
+      console.error('Failed to start backend:', err);
+      app.quit();
+    }
+  });
+}
 
 app.on('window-all-closed', () => {
   console.log('All windows closed.');

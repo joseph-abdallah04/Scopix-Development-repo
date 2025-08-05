@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { FiUpload } from "react-icons/fi"
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../contexts/theme-context'
+import { useBackendStatus } from '../contexts/backend-status-context'
 
 interface FileUploadCardProps {
   accept: string
@@ -23,9 +24,22 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAnalysing, setIsAnalysing] = useState(false)
+  const [progress, setProgress] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
   const { isDarkMode } = useTheme()
+  const { isBackendAvailable } = useBackendStatus()
+
+  // Reset component state when component mounts
+  useEffect(() => {
+    setFile(null)
+    setError(null)
+    setIsAnalysing(false)
+    setProgress(0)
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }, [])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploaded = event.target.files?.[0]
@@ -46,11 +60,32 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
 
   const handleAnalyse = async () => {
     if (!file) return
+    
+    // Check backend availability before proceeding
+    if (!isBackendAvailable) {
+      return
+    }
+    
     setIsAnalysing(true)
+    setProgress(0)
+
+    // Start progress simulation
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev
+        return prev + Math.random() * 15
+      })
+    }, 300)
 
     try {
       // Call the provided onAnalyse function (could be async)
       await onAnalyse(file)
+      
+      // Set progress to 100% when complete
+      setProgress(100)
+      
+      // Clear the interval
+      clearInterval(progressInterval)
       
       // Only navigate if onAnalyse doesn't handle navigation itself
       // For CSV uploads, this will still work as before
@@ -61,6 +96,8 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
       console.error('Analysis failed:', error)
     } finally {
       setIsAnalysing(false)
+      setProgress(0)
+      clearInterval(progressInterval)
     }
   }
 
@@ -73,27 +110,30 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
               ? 'border-gray-500 bg-[#181c23] text-white' 
               : 'border-gray-400 bg-gray-50 text-gray-900'
           }`}>
-            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors active:scale-85 transition-transform ${
+            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors ${
               isDarkMode 
                 ? 'hover:bg-blue-700' 
                 : 'hover:bg-blue-600'
-            }`}>
-              <FiUpload className={`w-20 h-20 transition-colors ${
-                isDarkMode 
-                  ? 'text-white' 
-                  : 'text-gray-600'
-              }`} />
-              <span className={`mt-2 text-xl transition-colors ${
-                isDarkMode 
-                  ? 'text-gray-400' 
-                  : 'text-gray-500'
-              }`}>{fileLabel}</span>
+            } ${!isBackendAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <div className="flex flex-col items-center justify-center active:scale-85 transition-transform">
+                <FiUpload className={`w-20 h-20 transition-colors ${
+                  isDarkMode 
+                    ? 'text-white' 
+                    : 'text-gray-600'
+                }`} />
+                <span className={`mt-2 text-xl transition-colors ${
+                  isDarkMode 
+                    ? 'text-gray-400' 
+                    : 'text-gray-500'
+                }`}>{fileLabel}</span>
+              </div>
               <input
                 ref={inputRef}
                 type="file"
                 accept={accept}
                 onChange={handleFileUpload}
                 style={{ display: 'none' }}
+                disabled={!isBackendAvailable}
               />
             </label>
             {file && <span className="text-green-400 text-sm">{file.name}</span>}
@@ -125,10 +165,14 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
         )}
       </div>
 
-      <div className="flex gap-16 justify-center mt-10 w-full">
+      <div className="flex gap-40 justify-center mt-20 w-full">
         {file && (
           <button
-            className="bg-red-600 hover:bg-red-700 text-white px-8 py-2 rounded-full"
+            className={`font-medium rounded-full px-24 py-3 text-base transition-all duration-300 flex items-center gap-2 w-32 justify-center ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+            }`}
             disabled={!file || isAnalysing}
             onClick={() => {
               setFile(null)
@@ -142,13 +186,32 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
           </button>
         )}
         <button
-          className={`px-8 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700${
-            !file || isAnalysing ? ' opacity-50 cursor-not-allowed' : ''
+          className={`font-medium rounded-full px-24 py-3 text-base transition-all duration-300 flex items-center gap-2 w-32 justify-center relative overflow-hidden ${
+            !file || isAnalysing || !isBackendAvailable 
+              ? 'opacity-50 cursor-not-allowed bg-gray-400 text-gray-600' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white'
           }`}
           onClick={handleAnalyse}
-          disabled={!file || isAnalysing}
+          disabled={!file || isAnalysing || !isBackendAvailable}
         >
-          {isAnalysing ? `Analysing...` : buttonLabel}
+          {isAnalysing && (
+            <div className="absolute inset-0 bg-blue-500">
+              <div 
+                className="h-full bg-blue-400 animate-pulse"
+                style={{ 
+                  background: `linear-gradient(90deg, 
+                    rgba(59, 130, 246, 0.8) 0%, 
+                    rgba(96, 165, 250, 1) 50%, 
+                    rgba(59, 130, 246, 0.8) 100%)`,
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 1.5s ease-in-out infinite'
+                }}
+              ></div>
+            </div>
+          )}
+          <span className="relative z-10">
+            {isAnalysing ? `Analysing...` : buttonLabel}
+          </span>
         </button>
       </div>
     </div>
