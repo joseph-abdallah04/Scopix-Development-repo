@@ -6,6 +6,7 @@ import MeasurementToolsPanel from '../components/MeasurementToolsPanel';
 import MeasurementLayout from '../components/MeasurementLayout';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useTheme } from '../contexts/theme-context';
 import type { Measurements } from '../types/measurements';
 
 interface AngleMeasurement {
@@ -45,6 +46,7 @@ interface MeasurementState {
 function ManualMeasurement() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   
   const frameData = location.state?.frameData;
   const [frameImageUrl, setFrameImageUrl] = useState<string | null>(null);
@@ -710,12 +712,18 @@ function ManualMeasurement() {
 
   if (!frameData) {
     return (
-      <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-xl mb-6">No frame data available</p>
           <button 
             onClick={handleBack} 
-            className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2"
+            className={`border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                : 'bg-gray-300 hover:bg-gray-400 text-gray-900'
+            }`}
           >
             <GoArrowLeft />
             Back to Video Analysis
@@ -733,211 +741,221 @@ function ManualMeasurement() {
         onBack={handleBack}
       />
 
-      <MeasurementLayout>
-        <div className="flex-1 flex items-center justify-center bg-zinc-900 rounded-xl border border-gray-700 p-4 overflow-hidden relative">
-          {frameImageUrl ? (
-            <div 
-              className="relative overflow-hidden w-full h-full flex items-center justify-center"
-              onContextMenu={handleContextMenu}
-              style={{
-                cursor: (selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType) ? 'crosshair' : 'default'
-              }}
-            >
-              <div className="relative">
-                <img 
-                  src={frameImageUrl} 
-                  alt={`Frame ${frameData.frameIdx} at ${frameData.timestamp.toFixed(3)}s`}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                  onClick={handleImageClick}
-                  onDragStart={(e) => e.preventDefault()}
-                  onContextMenu={handleContextMenu}
-                  draggable={false}
-                />
-                
-                {/* Points overlay */}
-                {currentPoints.map((point, index) => {
-                  let pointColor = 'bg-red-500'; // Default for angles
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
+        <MeasurementLayout>
+          <div className={`flex-1 flex items-center justify-center rounded-xl border p-4 overflow-hidden relative transition-colors duration-300 ${
+            isDarkMode 
+              ? 'bg-zinc-900 border-gray-700' 
+              : 'bg-gray-300 border-gray-500'
+          }`}>
+            {frameImageUrl ? (
+              <div 
+                className="relative overflow-hidden w-full h-full flex items-center justify-center"
+                onContextMenu={handleContextMenu}
+                style={{
+                  cursor: (selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType) ? 'crosshair' : 'default'
+                }}
+              >
+                <div className="relative">
+                  <img 
+                    src={frameImageUrl} 
+                    alt={`Frame ${frameData.frameIdx} at ${frameData.timestamp.toFixed(3)}s`}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    onClick={handleImageClick}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={handleContextMenu}
+                    draggable={false}
+                  />
                   
-                  if (selectedAreaType || measurementState.activeToolType === 'area') {
-                    pointColor = 'bg-green-500';
-                  } else if (selectedDistanceType || measurementState.activeToolType === 'distance') {
-                    // First 2 points are horizontal (blue), last 2 are vertical (red)
-                    pointColor = index < 2 ? 'bg-blue-500' : 'bg-red-500';
-                  }
+                  {/* Points overlay */}
+                  {currentPoints.map((point, index) => {
+                    let pointColor = 'bg-red-500'; // Default for angles
+                    
+                    if (selectedAreaType || measurementState.activeToolType === 'area') {
+                      pointColor = 'bg-green-500';
+                    } else if (selectedDistanceType || measurementState.activeToolType === 'distance') {
+                      // First 2 points are horizontal (blue), last 2 are vertical (red)
+                      pointColor = index < 2 ? 'bg-blue-500' : 'bg-red-500';
+                    }
+                    
+                    return (
+                      <div
+                        key={index}
+                        className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 pointer-events-none border border-white shadow-lg z-10 ${pointColor}`}
+                        style={{
+                          left: point[0],
+                          top: point[1],
+                          opacity: 0.7,
+                        }}
+                      />
+                    );
+                  })}
                   
-                  return (
-                    <div
-                      key={index}
-                      className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 pointer-events-none border border-white shadow-lg z-10 ${pointColor}`}
-                      style={{
-                        left: point[0],
-                        top: point[1],
-                        opacity: 0.7,
-                      }}
-                    />
-                  );
-                })}
-                
-                {/* Lines for area measurement */}
-                {(selectedAreaType || measurementState.activeToolType === 'area') && currentPoints.length > 1 && (
-                  <svg 
-                    className="absolute top-0 left-0 pointer-events-none z-5"
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    {currentPoints.slice(1).map((point, index) => {
-                      const prevPoint = currentPoints[index];
-                      return (
+                  {/* Lines for area measurement */}
+                  {(selectedAreaType || measurementState.activeToolType === 'area') && currentPoints.length > 1 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {currentPoints.slice(1).map((point, index) => {
+                        const prevPoint = currentPoints[index];
+                        return (
+                          <line
+                            key={`area-line-${index}`}
+                            x1={prevPoint[0]}
+                            y1={prevPoint[1]}
+                            x2={point[0]}
+                            y2={point[1]}
+                            stroke="green"
+                            strokeWidth="3"
+                            strokeDasharray="5,5"
+                          />
+                        );
+                      })}
+                      {currentPoints.length >= 3 && (
                         <line
-                          key={`area-line-${index}`}
-                          x1={prevPoint[0]}
-                          y1={prevPoint[1]}
-                          x2={point[0]}
-                          y2={point[1]}
+                          x1={currentPoints[currentPoints.length - 1][0]}
+                          y1={currentPoints[currentPoints.length - 1][1]}
+                          x2={currentPoints[0][0]}
+                          y2={currentPoints[0][1]}
                           stroke="green"
                           strokeWidth="3"
                           strokeDasharray="5,5"
                         />
-                      );
-                    })}
-                    {currentPoints.length >= 3 && (
-                      <line
-                        x1={currentPoints[currentPoints.length - 1][0]}
-                        y1={currentPoints[currentPoints.length - 1][1]}
-                        x2={currentPoints[0][0]}
-                        y2={currentPoints[0][1]}
-                        stroke="green"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                  </svg>
-                )}
+                      )}
+                    </svg>
+                  )}
 
-                {/* Lines for angle measurement */}
-                {(selectedAngleType || measurementState.activeToolType === 'angle') && currentPoints.length > 1 && (
-                  <svg 
-                    className="absolute top-0 left-0 pointer-events-none z-5"
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    {/* First line: from point 1 to point 2 (vertex) */}
-                    {currentPoints.length >= 2 && (
-                      <line
-                        x1={currentPoints[0][0]}
-                        y1={currentPoints[0][1]}
-                        x2={currentPoints[1][0]}
-                        y2={currentPoints[1][1]}
-                        stroke="orange"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                    
-                    {/* Second line: from point 2 (vertex) to point 3 */}
-                    {currentPoints.length >= 3 && (
-                      <line
-                        x1={currentPoints[1][0]}
-                        y1={currentPoints[1][1]}
-                        x2={currentPoints[2][0]}
-                        y2={currentPoints[2][1]}
-                        stroke="orange"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                  </svg>
-                )}
+                  {/* Lines for angle measurement */}
+                  {(selectedAngleType || measurementState.activeToolType === 'angle') && currentPoints.length > 1 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {/* First line: from point 1 to point 2 (vertex) */}
+                      {currentPoints.length >= 2 && (
+                        <line
+                          x1={currentPoints[0][0]}
+                          y1={currentPoints[0][1]}
+                          x2={currentPoints[1][0]}
+                          y2={currentPoints[1][1]}
+                          stroke="orange"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                      
+                      {/* Second line: from point 2 (vertex) to point 3 */}
+                      {currentPoints.length >= 3 && (
+                        <line
+                          x1={currentPoints[1][0]}
+                          y1={currentPoints[1][1]}
+                          x2={currentPoints[2][0]}
+                          y2={currentPoints[2][1]}
+                          stroke="orange"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                    </svg>
+                  )}
 
-                {/* Lines for distance measurement */}
-                {(selectedDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
-                  <svg 
-                    className="absolute top-0 left-0 pointer-events-none z-5"
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    {/* Horizontal line (first 2 points) */}
-                    {currentPoints.length >= 2 && (
-                      <line
-                        x1={currentPoints[0][0]}
-                        y1={currentPoints[0][1]}
-                        x2={currentPoints[1][0]}
-                        y2={currentPoints[1][1]}
-                        stroke="blue"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                    
-                    {/* Vertical line (points 3 and 4) */}
-                    {currentPoints.length >= 4 && (
-                      <line
-                        x1={currentPoints[2][0]}
-                        y1={currentPoints[2][1]}
-                        x2={currentPoints[3][0]}
-                        y2={currentPoints[3][1]}
-                        stroke="red"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                  </svg>
+                  {/* Lines for distance measurement */}
+                  {(selectedDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {/* Horizontal line (first 2 points) */}
+                      {currentPoints.length >= 2 && (
+                        <line
+                          x1={currentPoints[0][0]}
+                          y1={currentPoints[0][1]}
+                          x2={currentPoints[1][0]}
+                          y2={currentPoints[1][1]}
+                          stroke="blue"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                      
+                      {/* Vertical line (points 3 and 4) */}
+                      {currentPoints.length >= 4 && (
+                        <line
+                          x1={currentPoints[2][0]}
+                          y1={currentPoints[2][1]}
+                          x2={currentPoints[3][0]}
+                          y2={currentPoints[3][1]}
+                          stroke="red"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                    </svg>
+                  )}
+                </div>
+                
+                {/* Status indicator */}
+                {(selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType || measurementState.activeToolType) && (
+                  <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm z-20">
+                    {getStatusText()}
+                  </div>
+                )}
+                
+                {isLoading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-30">
+                    <div className="text-white">
+                      {selectedAreaType ? 'Calculating area...' : 
+                       selectedAngleType ? 'Calculating angle...' : 
+                       selectedDistanceType ? 'Calculating distance ratio...' : 'Processing...'}
+                    </div>
+                  </div>
                 )}
               </div>
-              
-              {/* Status indicator */}
-              {(selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType || measurementState.activeToolType) && (
-                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm z-20">
-                  {getStatusText()}
-                </div>
-              )}
-              
-              {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-30">
-                  <div className="text-white">
-                    {selectedAreaType ? 'Calculating area...' : 
-                     selectedAngleType ? 'Calculating angle...' : 
-                     selectedDistanceType ? 'Calculating distance ratio...' : 'Processing...'}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center text-gray-400">
-              <div className="text-lg mb-2">Loading frame...</div>
-              <div className="text-sm">Frame {frameData.frameIdx} • {frameData.timestamp.toFixed(3)}s</div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className={`text-center transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                <div className="text-lg mb-2">Loading frame...</div>
+                <div className="text-sm">Frame {frameData.frameIdx} • {frameData.timestamp.toFixed(3)}s</div>
+              </div>
+            )}
+          </div>
 
-        <div className="flex flex-col gap-4">
-          <MeasurementToolsPanel
-            measurements={measurements}
-            onSave={saveMeasurements}
-            onAngleTypeSelect={handleAngleTypeSelect}
-            onAreaTypeSelect={handleAreaTypeSelect}
-            onDistanceTypeSelect={handleDistanceTypeSelect}
-            onRawDistanceTypeSelect={handleRawDistanceToolSelect}
-            selectedAngleType={selectedAngleType}
-            selectedAreaType={selectedAreaType}
-            selectedDistanceType={selectedDistanceType}
-            selectedRawDistanceType={selectedRawDistanceType}
-            distanceMeasurementStep={distanceMeasurementStep}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onClearAll={handleClearAll}
-            canUndo={canUndo}
-            canRedo={canRedo}
-          />
-        </div>
-      </MeasurementLayout>
+          <div className="flex flex-col gap-4">
+            <MeasurementToolsPanel
+              measurements={measurements}
+              onSave={saveMeasurements}
+              onAngleTypeSelect={handleAngleTypeSelect}
+              onAreaTypeSelect={handleAreaTypeSelect}
+              onDistanceTypeSelect={handleDistanceTypeSelect}
+              onRawDistanceTypeSelect={handleRawDistanceToolSelect}
+              selectedAngleType={selectedAngleType}
+              selectedAreaType={selectedAreaType}
+              selectedDistanceType={selectedDistanceType}
+              selectedRawDistanceType={selectedRawDistanceType}
+              distanceMeasurementStep={distanceMeasurementStep}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onClearAll={handleClearAll}
+              canUndo={canUndo}
+              canRedo={canRedo}
+            />
+          </div>
+        </MeasurementLayout>
 
-      <ConfirmationPopup
-        isOpen={showBackConfirmation}
-        title="Unsaved Changes"
-        message="Your current frame measurements will not be saved. Are you sure you want to go back to video analysis?"
-        confirmButtonText="Confirm"
-        cancelButtonText="Cancel"
-        onConfirm={handleConfirmBack}
-        onCancel={handleCancelBack}
-      />
+        <ConfirmationPopup
+          isOpen={showBackConfirmation}
+          title="Unsaved Changes"
+          message="Your current frame measurements will not be saved. Are you sure you want to go back to video analysis?"
+          confirmButtonText="Confirm"
+          cancelButtonText="Cancel"
+          onConfirm={handleConfirmBack}
+          onCancel={handleCancelBack}
+        />
+      </div>
     </>
   );
 }

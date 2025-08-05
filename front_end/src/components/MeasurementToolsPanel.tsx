@@ -1,4 +1,5 @@
 import { FiRotateCcw, FiRotateCw, FiTrash2, FiSquare } from 'react-icons/fi';
+import { useTheme } from '../contexts/theme-context';
 import type { Measurements } from '../types/measurements';
 
 interface AreaMeasurement {
@@ -64,6 +65,8 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   canUndo,
   canRedo
 }) => {
+  const { isDarkMode } = useTheme();
+  
   console.log('🎯 RENDER - MeasurementToolsPanel with props:', {
     selectedAngleType,
     selectedAreaType,
@@ -142,68 +145,86 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   };
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-gray-700 p-4 w-80 flex flex-col gap-4 h-full overflow-hidden">
-      <h3 className="text-xl text-white text-center border-b border-gray-700 pb-2 m-0 flex-shrink-0">
+    <div className={`rounded-xl border p-4 w-80 flex flex-col gap-4 h-full overflow-hidden transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-zinc-900 border-gray-700' 
+        : 'bg-gray-300 border-gray-500'
+    }`}>
+      <h3 className={`text-xl text-center border-b pb-2 m-0 flex-shrink-0 transition-colors duration-300 ${
+        isDarkMode 
+          ? 'text-white border-gray-700' 
+          : 'text-gray-900 border-gray-500'
+      }`}>
         Measurement Tools
       </h3>
       
       {/* Scrollable content area with proper padding to avoid scrollbar overlap */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-4 min-h-0 pr-2 -mr-2">
         {/* Undo/Redo Controls */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Actions</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Actions</h4>
           <div className="flex gap-2">
             <button
               onClick={onUndo}
               disabled={!canUndo}
-              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium ${
+              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1 ${
                 canUndo
-                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  ? (isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-400 hover:bg-gray-500 text-gray-800')
+                  : (isDarkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 text-gray-600 cursor-not-allowed')
               }`}
             >
               <FiRotateCcw size={14} />
-              Undo
+              <span>Undo</span>
             </button>
             <button
               onClick={onRedo}
               disabled={!canRedo}
-              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium ${
+              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1 ${
                 canRedo
-                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  ? (isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-400 hover:bg-gray-500 text-gray-800')
+                  : (isDarkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 text-gray-600 cursor-not-allowed')
               }`}
             >
               <FiRotateCw size={14} />
-              Redo
+              <span>Redo</span>
             </button>
             <button
               onClick={onClearAll}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-3 py-2 text-sm transition-colors font-medium"
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1"
             >
               <FiTrash2 size={14} />
-              Clear All
+              <span>Clear All</span>
             </button>
           </div>
         </div>
         
         {/* Angle Measurement Tools */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Angle Measurements</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Angle Measurements</h4>
           <div className="flex flex-col gap-2">
             <button 
               onClick={() => handleAngleToolClick('angle_a')}
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAngleType === 'angle_a' 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="text-sm">∠</span>
                 <span className="truncate">Angle A (Glottic)</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAngleType === 'angle_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.angle_a !== undefined && measurements.angle_a !== null
                   ? `${measurements.angle_a.toFixed(1)}°`
                   : '--'}
@@ -214,14 +235,16 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAngleType === 'angle_b' 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="text-sm">∠</span>
                 <span className="truncate">Angle B (Supraglottic)</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAngleType === 'angle_b' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.angle_b !== undefined && measurements.angle_b !== null
                   ? `${measurements.angle_b.toFixed(1)}°`
                   : '--'}
@@ -231,21 +254,27 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
         </div>
 
         {/* Area Measurement Tools */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Area Measurements</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Area Measurements</h4>
           <div className="flex flex-col gap-2">
             <button 
               onClick={() => handleAreaToolClick('area_a')}
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAreaType === 'area_a' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Area A (Supraglottic)</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.area_a !== undefined && measurements.area_a !== null
                   ? `${measurements.area_a.toFixed(0)} px²`
                   : '--'}
@@ -256,13 +285,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAreaType === 'area_b' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Area B (Glottal)</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_b' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.area_b !== undefined && measurements.area_b !== null
                   ? `${measurements.area_b.toFixed(0)} px²`
                   : '--'}
@@ -273,13 +304,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAreaType === 'area_av' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Area AV</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_av' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.area_av !== undefined && measurements.area_av !== null
                   ? `${measurements.area_av.toFixed(0)} px²`
                   : '--'}
@@ -290,13 +323,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedAreaType === 'area_bv' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Area BV</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_bv' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.area_bv !== undefined && measurements.area_bv !== null
                   ? `${measurements.area_bv.toFixed(0)} px²`
                   : '--'}
@@ -306,21 +341,27 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
         </div>
 
         {/* Raw Distance Measurement Tools */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Distance Measurements</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Distance Measurements</h4>
           <div className="flex flex-col gap-2">
             <button
               onClick={() => handleRawDistanceToolClick('distance_a')}
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedRawDistanceType === 'distance_a'
                   ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Distance A</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.distance_a !== undefined && measurements.distance_a !== null
                   ? `${measurements.distance_a.toFixed(1)} px`
                   : '--'}
@@ -331,13 +372,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedRawDistanceType === 'distance_c'
                   ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Distance C</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_c' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.distance_c !== undefined && measurements.distance_c !== null
                   ? `${measurements.distance_c.toFixed(1)} px`
                   : '--'}
@@ -348,13 +391,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedRawDistanceType === 'distance_g'
                   ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Distance G</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_g' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.distance_g !== undefined && measurements.distance_g !== null
                   ? `${measurements.distance_g.toFixed(1)} px`
                   : '--'}
@@ -365,13 +410,15 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
               className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
                 selectedRawDistanceType === 'distance_h'
                   ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-shrink">
                 <span className="truncate">Distance H</span>
               </div>
-              <span className="text-xs text-gray-300 ml-2 flex-shrink-0">
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_h' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
                 {measurements.distance_h !== undefined && measurements.distance_h !== null
                   ? `${measurements.distance_h.toFixed(1)} px`
                   : '--'}
@@ -464,7 +511,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
           className={`w-full border-none rounded-lg px-4 py-3 text-sm font-medium cursor-pointer transition-colors duration-200 ${
             hasMeasurements
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+              : (isDarkMode ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50' : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50')
           }`}
         >
           Save Measurements

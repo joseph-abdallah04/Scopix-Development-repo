@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
 import ConfirmationPopup from './ConfirmationPopup';
+import { useTheme } from '../contexts/theme-context';
 import { calculateAllBaselineComparisons, type FullFrameData, type BaselineComparison } from '../utils/baselineCalculations';
 
 interface FrameDetailsPopupProps {
@@ -24,6 +25,7 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
   onDeleteFrame,
   onRenameFrame
 }) => {
+  const { isDarkMode } = useTheme();
   const [currentFrameData, setCurrentFrameData] = useState<FullFrameData | null>(null);
   const [baselineFrameData, setBaselineFrameData] = useState<FullFrameData | null>(null);
   const [baselineComparisons, setBaselineComparisons] = useState<Record<string, BaselineComparison | null> | null>(null);
@@ -115,14 +117,18 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
     
     return (
       <div>
-        <div className="text-sm text-white">
+        <div className={`text-sm transition-colors duration-300 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
           {value != null ? `${value.toFixed(3)}${unit}` : 'Not calculated'}
         </div>
         
         {/* Baseline comparison */}
         {!isBaseline && comparison && (
           <div className="text-xs mt-1 space-y-0.5">
-            <div className="text-blue-300">
+            <div className={`transition-colors duration-300 ${
+              isDarkMode ? 'text-blue-300' : 'text-blue-600'
+            }`}>
               % of Baseline: {comparison.percentOfBaseline.toFixed(1)}%
             </div>
             <div className={`${comparison.percentChangeFromBaseline >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -132,7 +138,9 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
         )}
         
         {isBaseline && (
-          <div className="text-xs text-blue-400 mt-1">
+          <div className={`text-xs mt-1 transition-colors duration-300 ${
+            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+          }`}>
             This is the baseline frame
           </div>
         )}
@@ -147,11 +155,17 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
         onClick={onClose}
       >
         <div 
-          className="bg-[#232a36]/90 backdrop-blur rounded-2xl p-6 shadow-lg border border-gray-500/30 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+          className={`bg-[#232a36]/90 backdrop-blur rounded-2xl p-6 shadow-lg border border-gray-500/30 max-w-lg w-full max-h-[90vh] overflow-y-auto ${
+            isDarkMode 
+              ? 'bg-gray-90 border-gray-500/30' 
+              : 'bg-gray-300 border-gray-400/30'
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className={`text-xl font-semibold transition-colors duration-300 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
               {currentFrameData.custom_name || `Frame ${currentFrameData.frame_idx}`}
               {isBaseline && (
                 <span className="ml-2 text-xs bg-yellow-500 text-black px-2 py-1 rounded-full font-medium">
@@ -172,7 +186,11 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
               )}
               <button 
                 onClick={onClose}
-                className="text-gray-400 hover:text-white"
+                className={`transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
                 ✕
               </button>
@@ -186,12 +204,16 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
               <img 
                 src={`http://localhost:8000/session/frame-thumbnail/${currentFrameData.frame_id}`}
                 alt={currentFrameData.custom_name || `Frame ${currentFrameData.frame_idx}`}
-                className="w-24 h-18 rounded object-cover border border-gray-600"
+                className={`w-24 h-18 rounded object-cover border transition-colors duration-300 ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-400'
+                }`}
               />
             </div>
             
             {/* Frame info */}
-            <div className="flex flex-col justify-center text-sm text-gray-300">
+            <div className={`flex flex-col justify-center text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-800'
+            }`}>
               <div>Frame: {currentFrameData.frame_idx}</div>
               <div>Time: {formatTime(currentFrameData.timestamp)}</div>
             </div>
@@ -200,25 +222,37 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
           <div className="space-y-4">
             {/* 1. Distance Ratios Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Distance Ratios</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Distance Ratios</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xs text-gray-400">Distance Ratio 1</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 1</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_1, '', 'distance_ratio_1')}
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400">Distance Ratio 2</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 2</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_2, '', 'distance_ratio_2')}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <div>
-                    <div className="text-xs text-gray-400">Distance Ratio 3</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 3</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_3, '', 'distance_ratio_3')}
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400">Distance Ratio 4</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 4</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_4, '', 'distance_ratio_4')}
                   </div>
                 </div>
@@ -227,35 +261,59 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
 
             {/* 2. P-Factor Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">P-Factor</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Area A / Distance A</div>
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>P-Factor</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className={`text-xs mb-1 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Area A / Distance A</div>
                 {renderValueWithBaseline(currentFrameData.formulas?.p_factor, '', 'p_factor')}
               </div>
             </div>
 
             {/* 3. C-Factor Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">C-Factor</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <div className="text-xs text-gray-400 mb-1">Area BV / (Area AV + Area BV)</div>
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>C-Factor</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className={`text-xs mb-1 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Area BV / (Area AV + Area BV)</div>
                 {renderValueWithBaseline(currentFrameData.formulas?.c_factor, '', 'c_factor')}
               </div>
             </div>
 
             {/* 4. Supraglottic Area Ratios Section - NEW */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Supraglottic Area Ratios</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Supraglottic Area Ratios</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <div className="text-xs text-gray-400 mb-1">Supraglottic Area Ratio 1</div>
-                    <div className="text-xs text-gray-500 mb-1">Area B / Distance A</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Supraglottic Area Ratio 1</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>Area B / Distance A</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.supraglottic_area_ratio_1, '', 'supraglottic_area_ratio_1')}
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 mb-1">Supraglottic Area Ratio 2</div>
-                    <div className="text-xs text-gray-500 mb-1">Area B / (Distance A + Distance C)</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Supraglottic Area Ratio 2</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>Area B / (Distance A + Distance C)</div>
                     {renderValueWithBaseline(currentFrameData.formulas?.supraglottic_area_ratio_2, '', 'supraglottic_area_ratio_2')}
                   </div>
                 </div>
@@ -264,15 +322,23 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
 
             {/* 5. Angle Measurements Section - update the number */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Angle Measurements</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Angle Measurements</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-xs text-gray-400">Angle A</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Angle A</div>
                     {renderValueWithBaseline(currentFrameData.measurements?.angle_a, '°', 'angle_a')}
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400">Angle B</div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Angle B</div>
                     {renderValueWithBaseline(currentFrameData.measurements?.angle_b, '°', 'angle_b')}
                   </div>
                 </div>
@@ -288,7 +354,9 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
                 disabled={isBaseline}
                 className={`text-sm cursor-pointer transition-colors duration-200 px-3 py-2 rounded-lg border-none ${
                   isBaseline
-                    ? 'bg-yellow-500/20 text-yellow-400 cursor-not-allowed'
+                    ? isDarkMode 
+                      ? 'bg-yellow-500/20 text-yellow-200 cursor-not-allowed'
+                      : 'bg-yellow-500/20 text-yellow-800 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
@@ -299,7 +367,11 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
             {/* Close button - Bottom right */}
             <button
               onClick={onClose}
-              className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-4 py-2 text-sm cursor-pointer transition-colors duration-200 ml-auto"
+              className={`border-none rounded-lg px-4 py-2 text-sm cursor-pointer transition-colors duration-200 ml-auto ${
+                isDarkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-900'
+              }`}
             >
               Close
             </button>

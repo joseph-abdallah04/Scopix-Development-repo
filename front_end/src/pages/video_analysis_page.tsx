@@ -7,6 +7,8 @@ import TimelineScrubber from '../components/TimelineScrubber';
 import FrameInfoDisplay from '../components/FrameInfoDisplay';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import { useExport } from '../hooks/useExport';
+import { useTheme } from '../contexts/theme-context'; 
+
 
 interface VideoAnalysisPageProps {
   file?: File | null;
@@ -59,6 +61,7 @@ interface FrameMetadata {
 function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   
   // Get session info from upload or check if session exists
   // const sessionInfo = location.state?.sessionInfo;
@@ -1046,12 +1049,20 @@ const handleLoadedMetadata = useCallback(async () => {
     if (!exportError) return null;
 
     return (
-      <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50">
+      <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-red-600 text-white' 
+          : 'bg-red-100 text-red-800 border border-red-300'
+      }`}>
         <div className="flex items-center gap-2">
           <span>Export failed: {exportError}</span>
           <button 
             onClick={clearExportError}
-            className="ml-2 text-white hover:text-gray-200"
+            className={`ml-2 transition-colors duration-200 ${
+              isDarkMode 
+                ? 'text-white hover:text-gray-200' 
+                : 'text-red-600 hover:text-red-800'
+            }`}
           >
             ×
           </button>
@@ -1063,12 +1074,18 @@ const handleLoadedMetadata = useCallback(async () => {
   // Check if we have either a session or uploaded file
   if (!hasActiveSession && !uploadedFile) {
     return (
-      <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-xl mb-6">No video session available</p>
           <button 
             onClick={handleBack} 
-            className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2"
+            className={`border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+            }`}
           >
             <GoArrowLeft />
             Back to Upload
@@ -1081,7 +1098,9 @@ const handleLoadedMetadata = useCallback(async () => {
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col p-4 box-border overflow-hidden">
+    <div className={`w-screen h-screen min-h-screen flex flex-col p-4 box-border overflow-hidden transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+    }`}>
       {renderExportError()}
       
       <div className="flex-1 flex flex-col max-w-full h-screen overflow-hidden relative">

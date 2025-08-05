@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../contexts/theme-context';
 
 interface FrameInfoDisplayProps {
   currentTime: number;
@@ -15,9 +16,17 @@ const FrameInfoDisplay: React.FC<FrameInfoDisplayProps> = ({
   fps,
   formatTime
 }) => {
+  const { isDarkMode } = useTheme();
+  
   return (
-    <div className="bg-zinc-900 rounded-lg border border-gray-700 p-3 flex-shrink-0">
-      <div className="text-sm text-gray-300 text-center font-mono">
+    <div className={`rounded-lg border p-3 flex-shrink-0 transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-zinc-900 border-gray-700' 
+        : 'bg-gray-300 border-gray-500'
+    }`}>
+      <div className={`text-sm text-center font-mono transition-colors duration-300 ${
+        isDarkMode ? 'text-gray-300' : 'text-gray-700'
+      }`}>
         <span>Current Time: {formatTime(currentTime)} | </span>
         <span>Frame: {currentFrameIdx} / {totalFrames} | </span>
         <span>FPS: {fps}</span>
