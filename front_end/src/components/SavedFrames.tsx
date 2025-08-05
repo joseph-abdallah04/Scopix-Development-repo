@@ -132,7 +132,7 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
   };
 
   return (
-    <div className={`w-80 flex flex-col gap-4 flex-shrink-0 ${className}`}>
+    <div className={`w-80 flex flex-col gap-4 flex-shrink-0 h-full ${className}`}>
       {/* Back Button */}
       {showBackButton && (
         <button 
@@ -148,8 +148,8 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
         </button>
       )}
       
-      {/* Frames Container - Fixed size */}
-      <div className={`flex flex-col rounded-xl border shadow-lg transition-colors duration-300 h-[800px] ${
+      {/* Frames Container - Dynamic size */}
+      <div className={`flex flex-col rounded-xl border shadow-lg transition-colors duration-300 flex-1 ${
         isDarkMode 
           ? 'bg-zinc-900 border-gray-700' 
           : 'bg-gray-300 border-gray-600'
