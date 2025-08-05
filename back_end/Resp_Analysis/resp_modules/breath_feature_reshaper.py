@@ -22,42 +22,6 @@ def BreathFeatureReshaper(df: pd.DataFrame) -> pd.DataFrame:
 
     rows = []
     for i in range(N):
-        # Add blank line before each breath index (except the first one)
-        if i > 0:
-            blank_row = {
-                "BREATH_INDEX": "",
-                "SEGMENT": "",
-                "R5-19": "",
-                "R5": "",
-                "R19": "",
-                "X5": "",
-                "INSP_VOLUME": "",
-                "EXP_VOLUME": "",
-                "INSPIRATION_START": "",
-                "INSPIRATION_END": "",
-                "EXPIRATION_START": "",
-                "EXPIRATION_END": "",
-            }
-            rows.append(blank_row)
-        
-        # Add header line for the breath index
-        header_row = {
-            "BREATH_INDEX": f"Breath {arrays['breath_index'][i]}",
-            "SEGMENT": "SEGMENT",
-            "R5-19": "R5-19",
-            "R5": "R5",
-            "R19": "R19",
-            "X5": "X5",
-            "INSP_VOLUME": "INSP_VOLUME",
-            "EXP_VOLUME": "EXP_VOLUME",
-            "INSPIRATION_START": "INSPIRATION_START",
-            "INSPIRATION_END": "INSPIRATION_END",
-            "EXPIRATION_START": "EXPIRATION_START",
-            "EXPIRATION_END": "EXPIRATION_END",
-        }
-        rows.append(header_row)
-        
-        # Add data rows for each segment
         for seg in segments:
             row = {
                 "BREATH_INDEX": arrays["breath_index"][i],

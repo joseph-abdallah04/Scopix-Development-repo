@@ -11,6 +11,7 @@ from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 import orjson
 
+
 class ExportUtils:
 
     # --- 私有静态工具函数 ---
@@ -67,9 +68,7 @@ class ExportUtils:
         reader = ImageReader(image_bytes)
         iw, ih = reader.getSize()
         pw, ph = page_size
-        max_width = pw * 0.9
-        max_height = ph * 0.65
-        scale = min(max_width / iw, max_height / ih)
+        scale = min((pw - 80) / iw, (ph - 80) / ih)
         return Image(image_bytes, width=iw * scale, height=ih * scale)
 
     # --- 核心导出接口 ---
@@ -79,7 +78,7 @@ class ExportUtils:
         df: pd.DataFrame,
         index: bool = False,
         encoding: str = "utf-8",
-        na_rep: Optional[str] = ""
+        na_rep: Optional[str] = None
     ) -> BytesIO:
         try:
             csv_bytes = df.to_csv(index=index, na_rep=na_rep).encode(encoding)

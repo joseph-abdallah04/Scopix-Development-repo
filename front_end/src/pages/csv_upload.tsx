@@ -19,39 +19,39 @@ const CSVUpload = () => {
   }, [clearResult])
 
   const handleAnalyse = async (file: File) => {
-  try {
-    const formData1 = new FormData()
-    formData1.append('file', file)
+    try {
+      const formData1 = new FormData()
+      formData1.append('file', file)
 
-    const formData2 = new FormData()
-    formData2.append('file', file)
+      const formData2 = new FormData()
+      formData2.append('file', file)
 
-    const [segmentResp, chartData] = await Promise.all([
-      fetch('http://localhost:8000/upload-download/', {
-        method: 'POST',
-        body: formData1
-      }).then((res) => res.json()),
+      const [segmentResp, chartData] = await Promise.all([
+        fetch('http://localhost:8000/upload-download/', {
+          method: 'POST',
+          body: formData1
+        }).then((res) => res.json()),
 
-      fetch('http://localhost:8000/plot-csv', {
-        method: 'POST',
-        body: formData2
-      }).then((res) => res.json()) 
-    ])
+        fetch('http://localhost:8000/plot-csv/', {
+          method: 'POST',
+          body: formData2
+        }).then((res) => res.json()) 
+      ])
 
 
-    if (!Array.isArray(segmentResp.items) || segmentResp.items.length === 0) {
-      throw new Error("The backend did not return valid segmentData")
+      if (!Array.isArray(segmentResp.items) || segmentResp.items.length === 0) {
+        throw new Error("The backend did not return valid segmentData")
+      }
+
+      setResult(chartData)
+      setSegmentData(segmentResp.items)
+      navigate('/csv-results')
+
+    } catch (err) {
+      console.error('Error uploading file:', err)
+      alert('Upload failed, please check the CSV file format.')
     }
-
-    setResult(chartData)
-    setSegmentData(segmentResp.items)
-    navigate('/csv-results')
-
-  } catch (err) {
-    console.error('Error uploading file:', err)
-    alert('Upload failed, please check the CSV file format.')
   }
-}
 
   return (
     <div className={`upload-bg w-screen h-screen flex flex-col items-center justify-center pt-24 transition-colors duration-300 ${

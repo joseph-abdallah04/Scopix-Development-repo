@@ -6,21 +6,20 @@ import {
   flexRender,
 } from "@tanstack/react-table"
 import type { ColumnDef } from "@tanstack/react-table"
+import { useTheme } from "../contexts/theme-context"
 
 type DataRow = Record<string, string | number | null>
 
-interface PreviewTableProps {
-  data: DataRow[]
-  isFullscreen?: boolean
-}
-
-export default function PreviewTable({ data, isFullscreen = false }: PreviewTableProps) {
+export default function PreviewTable({ data }: { data: DataRow[] }) {
   const [pageIndex, setPageIndex] = useState(0)
   const pageSize = 15
+  const { isDarkMode } = useTheme()
 
   if (!data || data.length === 0) {
     return (
-      <div className="w-full text-center py-6 text-gray-400">
+      <div className={`w-full text-center py-6 ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-400'
+      }`}>
           No data available
       </div>
     )
@@ -51,55 +50,69 @@ export default function PreviewTable({ data, isFullscreen = false }: PreviewTabl
   const currentRows = table.getPaginationRowModel().rows
 
   return (
-    <div className={`w-full rounded-xl border shadow bg-white text-sm ${
-      isFullscreen ? 'h-full flex flex-col' : ''
+    <div className={`relative w-full overflow-x-auto rounded-xl border p-4 pt-4 shadow text-sm transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-800 border-gray-600 text-white' 
+        : 'bg-white border-gray-300 text-gray-900'
     }`}>
-      {/* Scrollable table container */}
-      <div className={`overflow-x-auto ${
-        isFullscreen ? 'flex-1 p-4' : 'p-4 pt-4'
-      }`}>
-        <table className="table-auto w-full border-collapse mt-4">
-          <thead className="bg-gray-100">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="border px-3 py-2 text-left">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
+      <table className="table-auto w-full border-collapse mt-4">
+        <thead className={`${
+          isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+        }`}>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th key={header.id} className={`border px-3 py-2 text-left ${
+                  isDarkMode 
+                    ? 'border-gray-600 text-gray-200' 
+                    : 'border-gray-300 text-gray-800'
+                }`}>
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {currentRows.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className={`text-center py-4 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+              }`}>
+                No data
+              </td>
+            </tr>
+          ) : (
+            currentRows.map((row) => (
+              <tr key={row.id} className={`${
+                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+              }`}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className={`border px-3 py-1 ${
+                    isDarkMode 
+                      ? 'border-gray-600 text-gray-200' 
+                      : 'border-gray-300 text-gray-800'
+                  }`}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
                 ))}
               </tr>
-            ))}
-          </thead>
-          <tbody>
-            {currentRows.length === 0 ? (
-              <tr>
-                <td colSpan={columns.length} className="text-center py-4 text-gray-500">
-                  No data
-                </td>
-              </tr>
-            ) : (
-              currentRows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="border px-3 py-1">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </table>
 
-      {/* Pagination controls - outside scrollable area */}
-      <div className={`flex justify-between items-center p-4 text-sm border-t ${
-        isFullscreen ? 'flex-shrink-0' : ''
+      <div className={`flex justify-between items-center mt-4 text-sm ${
+        isDarkMode ? 'text-gray-300' : 'text-gray-700'
       }`}>
         <button
           onClick={() => setPageIndex((i) => Math.max(0, i - 1))}
           disabled={pageIndex === 0}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
+          className={`px-3 py-1 rounded transition-colors duration-200 ${
+            isDarkMode 
+              ? 'bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-800 disabled:text-gray-500'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50'
+          }`}
         >
           Previous
         </button>
@@ -113,7 +126,11 @@ export default function PreviewTable({ data, isFullscreen = false }: PreviewTabl
             )
           }
           disabled={pageIndex >= table.getPageCount() - 1}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
+          className={`px-3 py-1 rounded transition-colors duration-200 ${
+            isDarkMode 
+              ? 'bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-800 disabled:text-gray-500'
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-800 disabled:opacity-50'
+          }`}
         >
           Next
         </button>

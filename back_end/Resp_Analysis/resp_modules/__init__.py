@@ -4,7 +4,6 @@ from .breath_segmenter import BreathSegmenter
 from .dataframe_loader import DataFrameLoader
 from .resp_plotter import RespiratoryPlotter
 from .export_utils import ExportUtils
-from .dataframe_validator import DataFrameValidator
 
 __all__ = [
     "ImpedanceFeatureExtractor",
@@ -12,6 +11,5 @@ __all__ = [
     "BreathSegmenter",
     "DataFrameLoader",
     "RespiratoryPlotter",
-    "ExportUtils",
-    "DataFrameValidator"
+    "ExportUtils"
 ]

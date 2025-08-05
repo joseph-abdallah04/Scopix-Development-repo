@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Union, Dict, Optional, List, IO
 import pandas as pd
 import io
-from Resp_Analysis.resp_modules.dataframe_validator import DataFrameValidator
+from .dataframe_validator import DataFrameValidator
 
 @dataclass
 class DataFrameLoader:
@@ -35,7 +35,6 @@ class DataFrameLoader:
                                  index_col=self.index_col, usecols=self.usecols,
                                  encoding=self.encoding)
             elif suffix == '.xlsx':
-                # For Excel files, we don't use delimiter parameter
                 df = pd.read_excel(source, index_col=self.index_col,
                                    usecols=self.usecols, engine='openpyxl')
             else:
