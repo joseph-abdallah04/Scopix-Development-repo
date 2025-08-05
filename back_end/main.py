@@ -2,7 +2,7 @@ import multiprocessing
 multiprocessing.freeze_support()
 
 
-from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Form, Request
+from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Form, Request, Header
 from fastapi.responses import JSONResponse, Response, FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
@@ -94,15 +94,28 @@ class AreaComparisonResponse(BaseModel):
     comparison: Optional[Dict[str, Any]] = None
 
 class DistanceRatioRequest(BaseModel):
-    horizontal_points: List[List[float]]
-    vertical_points: List[List[float]]
+    distance_one: float
+    distance_two: float
 
 class DistanceRatioResponse(BaseModel):
-    horizontal_distance: float
-    vertical_distance: float
-    ratio_percentage: float
-    horizontal_points: List[List[float]]
-    vertical_points: List[List[float]]
+    distance_one: float
+    distance_two: float
+    distance_ratio: float
+
+class DistanceRequest(BaseModel):
+    points: List[List[float]]  # Should be exactly 2 points
+
+class DistanceResponse(BaseModel):
+    distance: float
+    points: List[List[float]]
+
+class CFactorRequest(BaseModel):
+    area_bv: float
+    area_av: float
+
+class PFactorRequest(BaseModel):
+    area_d: float
+    distance_a: float
 
 
 @app.post("/upload-csv/")
@@ -554,11 +567,15 @@ async def save_measured_frame(request: Request):
         with open(thumbnail_path, "wb") as f:
             f.write(thumbnail_bytes)
         
+        # Store measurements in session before calculating formulas
+        formulas = session_manager.calculate_formulas(measurements)
+
         # Prepare frame data
         frame_data = {
             "timestamp": timestamp,
             "frame_idx": frame_idx,
             "measurements": measurements,
+            "formulas": formulas, # Include calculated formulas
             "custom_name": custom_name,  # Include custom_name
             "thumbnail_path": thumbnail_path
         }
@@ -593,14 +610,26 @@ async def set_baseline_frame(frame_id: str):
 
 @app.get("/session/measured-frames")
 async def get_measured_frames():
-    """Get all measured frames"""
+    """Get frame metadata only (no measurements/formulas)"""
     try:
         session = session_manager.get_current_session()
         if not session:
             return JSONResponse(status_code=400, content={"error": "No active session"})
         
+        # Return only metadata, not full measurement data
+        frame_metadata = []
+        for frame in session["measured_frames"]:
+            frame_metadata.append({
+                "frame_id": frame["frame_id"],
+                "frame_idx": frame["frame_idx"],
+                "timestamp": frame["timestamp"],
+                "custom_name": frame.get("custom_name"),
+                "created_at": frame["created_at"],
+                "thumbnail_url": f"/session/frame-thumbnail/{frame['frame_id']}"
+            })
+        
         return JSONResponse(content={
-            "measured_frames": session["measured_frames"],
+            "frame_metadata": frame_metadata,
             "baseline_frame_id": session.get("baseline_frame_id")
         })
     except Exception as e:
@@ -619,6 +648,38 @@ async def get_frame_thumbnail(frame_id: str):
     except Exception as e:
         logger.error(f"Error getting frame thumbnail: {e}")
         return JSONResponse(status_code=500, content={"error": "Failed to get frame thumbnail"})
+
+
+@app.get("/session/frame-details/{frame_id}")
+async def get_frame_details(frame_id: str):
+    """Get complete measurement and formula data for a specific frame"""
+    try:
+        session = session_manager.get_current_session()
+        if not session:
+            return JSONResponse(status_code=400, content={"error": "No active session"})
+        
+        # Find the specific frame
+        frame = next(
+            (f for f in session["measured_frames"] if f["frame_id"] == frame_id),
+            None
+        )
+        
+        if not frame:
+            return JSONResponse(status_code=404, content={"error": "Frame not found"})
+        
+        return JSONResponse(content={
+            "frame_id": frame["frame_id"],
+            "timestamp": frame["timestamp"],
+            "frame_idx": frame["frame_idx"],
+            "custom_name": frame.get("custom_name"),
+            "measurements": frame["measurements"],
+            "formulas": frame["formulas"],
+            "created_at": frame["created_at"]
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting frame details: {e}")
+        return JSONResponse(status_code=500, content={"error": "Failed to get frame details"})
 
 
 @app.post("/session/save-canvas-frame")
@@ -682,11 +743,15 @@ async def save_canvas_captured_frame(request: Request):
         with open(thumbnail_path, "wb") as f:
             f.write(canvas_image_bytes)
         
+        # Store measurements in session before calculating formulas  
+        formulas = session_manager.calculate_formulas(measurements)
+        
         # Prepare frame data with exact timing
         frame_data = {
             "timestamp": timestamp,
             "frame_idx": frame_idx,
             "measurements": measurements,
+            "formulas": formulas,  # Add calculated formulas
             "custom_name": custom_name,
             "thumbnail_path": thumbnail_path,
             "capture_method": "canvas"  # Track that this was canvas-captured
@@ -769,9 +834,9 @@ async def delete_measured_frame(frame_id: str):
 
 
 @app.get("/session/video-file")
-async def get_session_video_file():
+async def get_session_video_file(request: Request, range: Optional[str] = Header(None)):
     """
-    Serve video file directly for frontend loading (not streaming)
+    Serve video file with Range request support for proper video playback
     """
     session = session_manager.get_current_session()
     if not session:
@@ -788,23 +853,85 @@ async def get_session_video_file():
             content={"error": "Video file not found on disk"}
         )
 
-    return FileResponse(
-        video_path,
-        media_type="video/mp4",
-        filename="video.mp4"
-    )
+    # Get file size
+    file_size = os.path.getsize(video_path)
+    
+    # Handle Range requests for video seeking
+    if range:
+        # Parse range header (e.g., "bytes=0-1023" or "bytes=1024-")
+        range_match = range.replace('bytes=', '').split('-')
+        start = int(range_match[0]) if range_match[0] else 0
+        end = int(range_match[1]) if range_match[1] else file_size - 1
+        
+        # Ensure end doesn't exceed file size
+        end = min(end, file_size - 1)
+        content_length = end - start + 1
+        
+        # Read the requested range
+        with open(video_path, "rb") as video_file:
+            video_file.seek(start)
+            content = video_file.read(content_length)
+        
+        # Return partial content response
+        return Response(
+            content=content,
+            status_code=206,  # Partial Content
+            headers={
+                "Content-Range": f"bytes {start}-{end}/{file_size}",
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(content_length),
+                "Content-Type": "video/mp4",
+            }
+        )
+    else:
+        # Return full file if no range requested
+        return FileResponse(
+            video_path,
+            media_type="video/mp4",
+            filename="video.mp4",
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(file_size)
+            }
+        )
 
 
-@app.post("/measure/distance-ratio", response_model=DistanceRatioResponse)
-def measure_distance_ratio(request: DistanceRatioRequest):
+@app.post("/measure/c-factor")
+def measure_c_factor(request: CFactorRequest):
     """
-    Calculate distance ratio (horizontal/vertical) * 100
+    Calculate C-factor (Supraglottic Obstruction)
     """
     try:
-        result = calculate_distance_ratio(request.horizontal_points, request.vertical_points)
-        return DistanceRatioResponse(**result)
+        c_factor = calculate_c_factor(request.area_bv, request.area_av)
+        return JSONResponse(content={"c_factor": c_factor})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/measure/p-factor")
+def measure_p_factor(request: PFactorRequest):
+    """    
+    Calculate P-factor (Glottic Obstruction)
+    """
+    try:
+        p_factor = calculate_p_factor(request.area_d, request.distance_a)
+        return JSONResponse(content={"p_factor": p_factor})
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/measure/distance", response_model=DistanceResponse)
+def measure_distance(request: DistanceRequest):
+    """
+    Calculate the pixel distance between two points
+    """
+    try:
+        if len(request.points) != 2:
+            raise ValueError("Exactly 2 points are required to calculate distance")
+        p1, p2 = request.points
+        distance = ((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2) ** 0.5
+        return DistanceResponse(distance=distance, points=request.points)
     except Exception as e:
-        logger.error(f"Distance ratio calculation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -852,5 +979,5 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, workers=1)
-    
+
 

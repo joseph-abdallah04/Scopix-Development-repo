@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import pytest
 import numpy as np
 from measurement_engine import calculate_area_opencv, calculate_area_scikit, calculate_area_comparison, shoelace_area

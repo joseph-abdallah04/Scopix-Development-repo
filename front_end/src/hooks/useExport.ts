@@ -7,10 +7,10 @@ export const useExport = () => {
   const [exportError, setExportError] = useState<string | null>(null);
 
   const exportResults = async (
-    savedFrames: any[],
+    frameMetadata: any[], // Updated to use new frame metadata structure
     baselineFrameId?: string
   ): Promise<boolean> => {
-    if (!savedFrames || savedFrames.length === 0) {
+    if (!frameMetadata || frameMetadata.length === 0) {
       setExportError('No frames available to export');
       return false;
     }
@@ -19,8 +19,8 @@ export const useExport = () => {
     setExportError(null);
 
     try {
-      // Prepare the export data
-      const framesData = prepareFramesForExport(savedFrames, baselineFrameId);
+      // Prepare the export data (now async to fetch frame details)
+      const framesData = await prepareFramesForExport(frameMetadata, baselineFrameId);
       
       const exportData: ExportData = {
         frames_data: framesData,
