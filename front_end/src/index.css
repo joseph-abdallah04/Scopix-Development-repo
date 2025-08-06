@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Custom Scrollbar Styles - Auto-hide and Theme-aware */
+/* Custom Scrollbar Styles - Slim and Modern */
 /* Webkit-based browsers (Chrome, Safari, newer Edge) */
 ::-webkit-scrollbar {
   width: 8px;
@@ -11,106 +11,51 @@
   background: transparent;
 }
 
-/* Auto-hide scrollbar by default */
+/* Light mode scrollbar */
 ::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-/* Show scrollbar on hover with small delay */
-*:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
-  transition: background-color 0.2s ease 0.1s;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.3);
-  transition: background-color 0.1s ease;
 }
 
-/* Dark mode scrollbar - auto-hide */
+/* Dark mode scrollbar */
 @media (prefers-color-scheme: dark) {
   ::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-  
-  *:hover::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    transition: background-color 0.2s ease 0.1s;
   }
   
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
-    transition: background-color 0.1s ease;
   }
 }
 
-/* For Firefox - auto-hide */
+/* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-*:hover {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 @media (prefers-color-scheme: dark) {
   * {
-    scrollbar-color: transparent transparent;
-  }
-  
-  *:hover {
     scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
   }
 }
 
 /* Override for elements that explicitly use dark mode class */
 .dark ::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-
-.dark *:hover::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  transition: background-color 0.2s ease 0.1s;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
-  transition: background-color 0.1s ease;
 }
 
 .dark * {
-  scrollbar-color: transparent transparent;
-}
-
-.dark *:hover {
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-/* Light mode override */
-.light ::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-
-.light *:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  transition: background-color 0.2s ease 0.1s;
-}
-
-.light ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-  transition: background-color 0.1s ease;
-}
-
-.light * {
-  scrollbar-color: transparent transparent;
-}
-
-.light *:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
 @keyframes shimmer {

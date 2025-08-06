@@ -116,66 +116,6 @@ function createWindow() {
       nodeIntegration: false,
     },
     show: false,
-    // Enable auto-hide scrollbars
-    autoHideMenuBar: true,
-  });
-
-  // Enable auto-hide scrollbars
-  mainWindow.webContents.on('dom-ready', () => {
-    mainWindow.webContents.insertCSS(`
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      
-      ::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 4px;
-        transition: background-color 0.2s ease;
-      }
-      
-      ::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.3);
-      }
-      
-      /* Auto-hide scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      
-      /* Hide scrollbar by default */
-      ::-webkit-scrollbar-thumb {
-        background: transparent;
-        transition: background-color 0.3s ease;
-      }
-      
-      /* Show scrollbar on hover */
-      *:hover::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.2);
-      }
-      
-      *:hover::-webkit-scrollbar-thumb:hover {
-        background: rgba(0, 0, 0, 0.3);
-      }
-      
-      /* Dark mode scrollbar */
-      .dark ::-webkit-scrollbar-thumb {
-        background: transparent;
-      }
-      
-      .dark *:hover::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
-      }
-      
-      .dark *:hover::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.3);
-      }
-    `);
   });
 
   Menu.setApplicationMenu(null);
