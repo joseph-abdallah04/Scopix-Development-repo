@@ -16,7 +16,7 @@ const AppContent: React.FC = () => {
   const location = useLocation()
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [displayLocation, setDisplayLocation] = useState(location)
-  const hideNavBar = location.pathname === '/video-analysis'
+  const hideNavBar = ['/video-analysis', '/manual-measurement'].includes(location.pathname)
   const { isDarkMode } = useTheme()
   const { isBackendAvailable, isLoading } = useBackendStatus()
 
