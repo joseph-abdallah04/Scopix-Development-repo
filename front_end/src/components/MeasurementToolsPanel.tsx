@@ -1,32 +1,8 @@
-import { FiRotateCcw, FiRotateCw, FiTrash2, FiSquare } from 'react-icons/fi';
+import { FiRotateCcw, FiRotateCw, FiTrash2 } from 'react-icons/fi';
 import { useTheme } from '../contexts/theme-context';
 import type { Measurements } from '../types/measurements';
 
-interface AreaMeasurement {
-  area_pixels: number;
-  perimeter_pixels: number;
-  method: string;
-  point_count: number;
-  area_mm2?: number;
-  perimeter_mm?: number;
-  centroid?: number[];
-  bbox?: number[];
-  eccentricity?: number;
-  solidity?: number;
-}
 
-interface AngleMeasurement {
-  angle: number;
-  points: number[][];
-}
-
-interface DistanceMeasurement {
-  horizontal_distance: number;
-  vertical_distance: number;
-  ratio_percentage: number;
-  horizontal_points: number[][];
-  vertical_points: number[][];
-}
 
 interface MeasurementToolsPanelProps {
   measurements: Measurements;
@@ -74,10 +50,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
     hasAreaHandler: !!onAreaTypeSelect
   });
 
-  const formatAngle = (angle: number) => `${angle.toFixed(1)}°`;
-  const formatArea = (area: number, unit: string = 'px²') => `${area.toFixed(1)} ${unit}`;
-  const formatDistance = (distance: number, unit: string = 'px') => `${distance.toFixed(1)} ${unit}`;
-  const formatRatio = (ratio: number) => `${ratio.toFixed(1)}%`;
+
 
   // Check if at least one measurement has been taken
   const hasMeasurements = !!(
@@ -119,17 +92,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
     }
   };
 
-  // Handle distance tool selection/deselection
-  const handleDistanceToolClick = (type: 'distance_ratio' | null) => {
-    console.log(`${type} button clicked`);
-    if (onDistanceTypeSelect) {
-      if (selectedDistanceType === type) {
-        onDistanceTypeSelect(null);
-      } else {
-        onDistanceTypeSelect(type);
-      }
-    }
-  };
+
 
   // Add handler for raw distance tools
   const handleRawDistanceToolClick = (type: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h') => {

@@ -83,11 +83,11 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   
   // Session-based state
   const [hasActiveSession, setHasActiveSession] = useState(false);
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [, setSessionData] = useState<any>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   
   // State for saved frames
-  const [savedFrames, setSavedFrames] = useState<SavedFrame[]>([]);
+  const [, setSavedFrames] = useState<SavedFrame[]>([]);
   const [lastPositionUpdate, setLastPositionUpdate] = useState(0);
   const [showBackConfirmation, setShowBackConfirmation] = useState(false);
 
@@ -101,7 +101,7 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   // Add the missing state variables after the other state declarations (around line 76)
   const [frameMetadata, setFrameMetadata] = useState<FrameMetadata[]>([]);
   const [baselineFrameId, setBaselineFrameId] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'analysis' | 'frames'>('analysis');
+  const [, setCurrentView] = useState<'analysis' | 'frames'>('analysis');
 
   // Calculate frame duration and total frames
   // const frameDuration = 1 / fps;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { checkBackendHealth } from '../utils/backendHealth'
 
 interface BackendStatusContextType {
@@ -23,7 +23,7 @@ interface BackendStatusProviderProps {
 export const BackendStatusProvider: React.FC<BackendStatusProviderProps> = ({ children }) => {
   const [isBackendAvailable, setIsBackendAvailable] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [consecutiveFailures, setConsecutiveFailures] = useState(0)
+  const [, setConsecutiveFailures] = useState(0)
 
   useEffect(() => {
     const checkBackend = async () => {

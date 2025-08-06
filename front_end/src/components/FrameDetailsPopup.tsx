@@ -23,13 +23,12 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
   formatTime,
   onSetBaseline,
   onDeleteFrame,
-  onRenameFrame
 }) => {
   const { isDarkMode } = useTheme();
   const [currentFrameData, setCurrentFrameData] = useState<FullFrameData | null>(null);
   const [baselineFrameData, setBaselineFrameData] = useState<FullFrameData | null>(null);
   const [baselineComparisons, setBaselineComparisons] = useState<Record<string, BaselineComparison | null> | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Fetch frame data when popup opens

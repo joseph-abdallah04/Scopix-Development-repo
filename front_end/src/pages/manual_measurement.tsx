@@ -9,31 +9,7 @@ import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useTheme } from '../contexts/theme-context';
 import type { Measurements } from '../types/measurements';
 
-interface AngleMeasurement {
-  angle: number;
-  points: number[][];
-}
 
-interface AreaMeasurement {
-  area_pixels: number;
-  perimeter_pixels: number;
-  method: string;
-  point_count: number;
-  area_mm2?: number;
-  perimeter_mm?: number;
-  centroid?: number[];
-  bbox?: number[];
-  eccentricity?: number;
-  solidity?: number;
-}
-
-interface DistanceMeasurement {
-  horizontal_distance: number;
-  vertical_distance: number;
-  ratio_percentage: number; // (x/y) * 100
-  horizontal_points: number[][];
-  vertical_points: number[][];
-}
 
 interface MeasurementState {
   measurements: Measurements;
