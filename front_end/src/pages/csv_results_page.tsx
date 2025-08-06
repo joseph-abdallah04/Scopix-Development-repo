@@ -204,11 +204,11 @@ const handleExport = async () => {
       </section>
 
       {/* Action Buttons Section - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 p-6">
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-6 animate-fade-in-up">
         <div className="w-full max-w-6xl mx-auto flex justify-between">
           <button
             onClick={handleBack}
-            className={`font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md ${
+            className={`font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 active:scale-95 shadow-lg hover:shadow-xl ${
               isDarkMode 
                 ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white border border-gray-600' 
                 : 'bg-white/80 hover:bg-gray-100/80 text-gray-900 border border-gray-300'
@@ -219,7 +219,7 @@ const handleExport = async () => {
           </button>
           <button
             onClick={handleExport}
-            className="bg-blue-600/90 hover:bg-blue-700/90 text-white font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md border border-blue-500"
+            className="bg-blue-600/80 hover:bg-blue-700/80 text-white font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md border border-blue-500 transform hover:scale-105 hover:-translate-y-1 active:scale-95 shadow-lg hover:shadow-xl"
           >
             <FiDownload className="w-4 h-4" />
             Export
