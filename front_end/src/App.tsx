@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { HashRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom"
 
 import NavBar from "./components/nav_bar"
@@ -14,9 +14,23 @@ import ManualMeasurement from "./pages/manual_measurement"
 
 const AppContent: React.FC = () => {
   const location = useLocation()
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [displayLocation, setDisplayLocation] = useState(location)
   const hideNavBar = location.pathname === '/video-analysis'
   const { isDarkMode } = useTheme()
   const { isBackendAvailable, isLoading } = useBackendStatus()
+
+  // Handle page transition animation
+  useEffect(() => {
+    if (location !== displayLocation) {
+      setIsTransitioning(true)
+      const timer = setTimeout(() => {
+        setDisplayLocation(location)
+        setIsTransitioning(false)
+      }, 200)
+      return () => clearTimeout(timer)
+    }
+  }, [location, displayLocation])
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -26,8 +40,12 @@ const AppContent: React.FC = () => {
     }`}>
       {!hideNavBar && <NavBar />}
       {!isLoading && !isBackendAvailable && <BackendStatusAlert isVisible={true} />}
-      <main>
-        <Routes>
+      <main className={`transition-all duration-300 ease-in-out ${
+        isTransitioning 
+          ? 'opacity-0 transform translate-x-2 scale-98' 
+          : 'opacity-100 transform translate-x-0 scale-100'
+      }`}>
+        <Routes location={displayLocation}>
           <Route path="/" element={<Navigate to="/csv-upload" replace />} />
           <Route path="/csv-upload" element={<CsvUpload />} />
           <Route path="/csv-results" element={<CsvResultsPage />} />

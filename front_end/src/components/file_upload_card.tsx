@@ -24,7 +24,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isAnalysing, setIsAnalysing] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [, setProgress] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const navigate = useNavigate()
   const { isDarkMode } = useTheme()
@@ -110,7 +110,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
               ? 'border-gray-500 bg-[#181c23] text-white' 
               : 'border-gray-400 bg-gray-50 text-gray-900'
           }`}>
-            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors group ${
+            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors ${
               isDarkMode 
                 ? 'hover:bg-blue-700' 
                 : 'hover:bg-blue-600'
@@ -119,12 +119,12 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
                 <FiUpload className={`w-20 h-20 transition-colors ${
                   isDarkMode 
                     ? 'text-white' 
-                    : 'text-gray-600 group-hover:text-white'
+                    : 'text-gray-600'
                 }`} />
                 <span className={`mt-2 text-xl transition-colors ${
                   isDarkMode 
                     ? 'text-gray-400' 
-                    : 'text-gray-500 group-hover:text-white'
+                    : 'text-gray-500'
                 }`}>{fileLabel}</span>
               </div>
               <input
@@ -170,8 +170,8 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
           <button
             className={`font-medium rounded-full px-24 py-3 text-base transition-all duration-300 flex items-center gap-2 w-32 justify-center ${
               isDarkMode 
-                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                ? 'bg-gray-700 hover:bg-red-600 text-white' 
+                : 'bg-gray-200 hover:bg-red-500 text-gray-900'
             }`}
             disabled={!file || isAnalysing}
             onClick={() => {

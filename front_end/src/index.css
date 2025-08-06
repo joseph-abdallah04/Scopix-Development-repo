@@ -8,3 +8,29 @@
     background-position: -200% 0;
   }
 }
+
+/* Smooth parallax scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Parallax sections */
+.parallax-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Container with scroll snap */
+.scroll-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  height: 100vh;
+}
+
+/* Smooth transitions for parallax elements */
+.parallax-element {
+  transform-origin: center;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+

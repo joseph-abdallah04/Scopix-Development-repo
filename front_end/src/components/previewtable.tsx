@@ -16,7 +16,7 @@ interface PreviewTableProps {
 
 export default function PreviewTable({ data, isFullscreen = false }: PreviewTableProps) {
   const [pageIndex, setPageIndex] = useState(0)
-  const pageSize = 15
+  const pageSize = isFullscreen ? 50 : 15
 
   if (!data || data.length === 0) {
     return (

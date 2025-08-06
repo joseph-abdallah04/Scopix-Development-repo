@@ -23,6 +23,12 @@ function CSVResultsPage() {
     toggleFullscreen
   } = useFullscreen<HTMLDivElement>()
 
+  const {
+    ref: chartRef,
+    isFullscreen: isChartFullscreen,
+    toggleFullscreen: toggleChartFullscreen
+  } = useFullscreen<HTMLDivElement>()
+
   useEffect(() => {
     setLoading(true)
 
@@ -60,58 +66,110 @@ const handleExport = async () => {
 }
 
   const handleBack = () => {
-    clearResult()
+    // Navigate immediately
     navigate("/csv-upload")
+    // Clear result after navigation completes
+    setTimeout(() => {
+      clearResult()
+    }, 500)
   }
 
   return (
-    <div className={`w-screen h-screen flex flex-col pt-24 transition-colors duration-300 ${
+    <div className={`w-screen scroll-container transition-colors duration-300 ${
       isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
     }`}>
-      <div className="flex flex-col items-center justify-between px-8 py-8 max-w-3xl w-full mx-auto min-h-[calc(100vh-90px)]">
-        <div className="flex flex-col w-full gap-8 flex-1">
+      {/* Chart Section - Full Page */}
+      <section className="parallax-section w-screen h-screen flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5 pointer-events-none"></div>
+        <div className="w-full max-w-6xl px-4 parallax-element ">
 
-          <div className="w-full">
-            <h2 className="text-lg font-medium mb-4 pl-2">Results</h2>
-            <div className={`rounded-xl h-[500px] p-0 flex items-center justify-center text-sm border ${
-              isDarkMode 
-                ? 'bg-transparent border-gray-600 text-white/70' 
-                : 'bg-transparent border-gray-300 text-gray-600'
+          <div
+            ref={chartRef}
+            className={`relative ${
+              isChartFullscreen
+                ? "fixed inset-0 z-30 bg-white dark:bg-gray-900 overflow-hidden"
+                : "rounded-xl p-4 shadow-lg"
+            } text-sm border ${
+              isDarkMode
+                ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
+            }`}
+          >
+            {/* Fullscreen content container */}
+            <div className={`relative ${
+              isChartFullscreen 
+                ? "w-full h-full flex flex-col" 
+                : "w-full max-w-7xl mx-auto"
             }`}>
-              {loading ? (
-                <p>Loading chart...</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : (
-                chartData && <InterGraph data={chartData} />
-              )}
+              <button
+                onClick={toggleChartFullscreen}
+                className={`absolute z-10 p-2 rounded-md transition-colors duration-300 ${
+                  isChartFullscreen 
+                    ? 'top-2 right-2' 
+                    : 'top-0 right-0'
+                } ${
+                  isDarkMode 
+                    ? 'bg-gray-600 hover:bg-gray-500 text-white' 
+                    : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                }`}
+                title={isChartFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                aria-label={isChartFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isChartFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
+              </button>
+
+              <h2 className={`text-lg font-semibold mb-4 ${
+                isChartFullscreen ? 'pt-16 px-4' : ''
+              }`}>Results</h2>
+              
+              <div className={`${
+                isChartFullscreen ? 'flex-1 overflow-hidden' : 'rounded-xl h-[500px] flex items-center justify-center'
+              } ${
+                isDarkMode 
+                  ? 'bg-transparent text-white/70' 
+                  : 'bg-transparent text-gray-600'
+              }`}>
+                {loading ? (
+                  <p>Loading chart...</p>
+                ) : error ? (
+                  <p className="text-red-500">{error}</p>
+                ) : (
+                  chartData && <InterGraph data={chartData} />
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* Table Section - Full Page */}
+      <section className="parallax-section w-screen h-screen flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/5 pointer-events-none"></div>
+        <div className="w-full max-w-6xl px-4 parallax-element ">
           <div
             ref={previewRef}
             className={`relative ${
               isFullscreen
                 ? "fixed inset-0 z-30 bg-white dark:bg-gray-900 overflow-hidden"
-                : "rounded-xl p-4"
+                : "rounded-xl p-4 shadow-lg"
             } text-sm border ${
               isDarkMode
-                ? 'bg-gray-800 border-gray-600 text-white/80'
-                : 'bg-white border-gray-300 text-gray-800'
+                ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
             }`}
           >
             {/* Fullscreen content container */}
             <div className={`relative ${
               isFullscreen 
                 ? "w-full h-full flex flex-col" 
-                : "w-full max-w-5xl"
+                : "w-full max-w-7xl mx-auto"
             }`}>
               <button
                 onClick={toggleFullscreen}
                 className={`absolute z-10 p-2 rounded-md transition-colors duration-300 ${
                   isFullscreen 
                     ? 'top-2 right-2' 
-                    : 'top-1 right-1'
+                    : 'top-0 right-0'
                 } ${
                   isDarkMode 
                     ? 'bg-gray-600 hover:bg-gray-500 text-white' 
@@ -134,28 +192,30 @@ const handleExport = async () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
 
-
-          <div className="w-full flex justify-between pt-8 pb-24 mt-auto">
-            <button
-              onClick={handleBack}
-              className={`font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 ${
-                isDarkMode 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-              }`}
-            >
-              <FiArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-            <button
-              onClick={handleExport}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2"
-            >
-              <FiDownload className="w-4 h-4" />
-              Export
-            </button>
-          </div>
+      {/* Action Buttons Section - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-6">
+        <div className="w-full max-w-6xl mx-auto flex justify-between">
+          <button
+            onClick={handleBack}
+            className={`font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md ${
+              isDarkMode 
+                ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white border border-gray-600' 
+                : 'bg-white/80 hover:bg-gray-100/80 text-gray-900 border border-gray-300'
+            }`}
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <button
+            onClick={handleExport}
+            className="bg-blue-600/90 hover:bg-blue-700/90 text-white font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md border border-blue-500"
+          >
+            <FiDownload className="w-4 h-4" />
+            Export
+          </button>
         </div>
       </div>
     </div>
