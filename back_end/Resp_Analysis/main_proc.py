@@ -31,10 +31,10 @@ def process_file(filepath: str) -> Tuple[str, pd.DataFrame, pd.DataFrame]:
 
 def generate_report_files(df: pd.DataFrame, vis_df: pd.DataFrame) -> BytesIO:
     """
-    根据分析结果生成包含 CSV、PDF 和图像的压缩包。
+    根据分析结果生成包含 Excel、PDF 和图像的压缩包。
     """
     return ExportUtils.write_zip({
-        "data.csv": ExportUtils.dataframe_to_csv_bytes(vis_df),
+        "data.xlsx": ExportUtils.dataframe_to_excel_bytes(vis_df, freeze_header=True),
         "plot.png": RespiratoryPlotter(df),
         "report.pdf": ExportUtils.dataframe_and_image_to_pdf(
             vis_df,

@@ -11,7 +11,6 @@ from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 import orjson
 
-
 class ExportUtils:
 
     # --- 私有静态工具函数 ---
@@ -68,7 +67,9 @@ class ExportUtils:
         reader = ImageReader(image_bytes)
         iw, ih = reader.getSize()
         pw, ph = page_size
-        scale = min((pw - 80) / iw, (ph - 80) / ih)
+        max_width = pw * 0.9
+        max_height = ph * 0.65
+        scale = min(max_width / iw, max_height / ih)
         return Image(image_bytes, width=iw * scale, height=ih * scale)
 
     # --- 核心导出接口 ---
@@ -78,13 +79,77 @@ class ExportUtils:
         df: pd.DataFrame,
         index: bool = False,
         encoding: str = "utf-8",
-        na_rep: Optional[str] = None
+        na_rep: Optional[str] = ""
     ) -> BytesIO:
         try:
             csv_bytes = df.to_csv(index=index, na_rep=na_rep).encode(encoding)
             return BytesIO(csv_bytes)
         except Exception as e:
             raise ValueError(f"[ERROR] Failed to encode DataFrame: {e}")
+
+    @staticmethod
+    def dataframe_to_excel_bytes(
+        df: pd.DataFrame,
+        index: bool = False,
+        sheet_name: str = "Data",
+        freeze_header: bool = True
+    ) -> BytesIO:
+        """
+        Convert DataFrame to Excel bytes with optional frozen header row.
+        
+        Args:
+            df: DataFrame to convert
+            index: Whether to include index
+            sheet_name: Name of the worksheet
+            freeze_header: Whether to freeze the first row (header)
+            
+        Returns:
+            BytesIO: Excel file as bytes buffer
+        """
+        try:
+            import openpyxl
+            from openpyxl.utils.dataframe import dataframe_to_rows
+            
+            # Create workbook and worksheet
+            workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+            worksheet.title = sheet_name
+            
+            # Convert DataFrame to rows
+            rows = dataframe_to_rows(df, index=index, header=True)
+            
+            # Write data to worksheet
+            for r_idx, row in enumerate(rows, 1):
+                for c_idx, value in enumerate(row, 1):
+                    worksheet.cell(row=r_idx, column=c_idx, value=value)
+            
+            # Freeze the header row if requested
+            if freeze_header and len(df) > 0:
+                worksheet.freeze_panes = "A2"
+            
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
+            # Save to bytes buffer
+            excel_buffer = BytesIO()
+            workbook.save(excel_buffer)
+            excel_buffer.seek(0)
+            return excel_buffer
+            
+        except Exception as e:
+            raise ValueError(f"[ERROR] Failed to create Excel file: {e}")
 
     @staticmethod
     def dataframe_to_plot_json(

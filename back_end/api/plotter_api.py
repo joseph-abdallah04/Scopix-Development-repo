@@ -4,7 +4,9 @@ from fastapi.responses import StreamingResponse, JSONResponse
 import json
 import pandas as pd
 import io
+import os
 from Resp_Analysis.resp_modules.export_utils import ExportUtils
+from Resp_Analysis.resp_modules.dataframe_loader import DataFrameLoader
 
 router = APIRouter()
 
@@ -12,10 +14,10 @@ router = APIRouter()
 async def plot_csv(file: UploadFile = File(...)):
     try:
         contents = await file.read()
-        buffer = io.BytesIO(contents)
-        buffer.seek(0)
-
-        df = pd.read_csv(buffer, delimiter='\t', encoding='utf-8', index_col='#')
+        
+        # Use DataFrameLoader for consistent file handling
+        loader = DataFrameLoader(index_col='#')
+        df = loader.load_bytes(contents, os.path.splitext(file.filename.lower())[1], file.filename)
 
         required_cols = {"X5", "R5", "Volume"}
         if not required_cols.issubset(df.columns):
