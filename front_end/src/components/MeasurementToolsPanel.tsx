@@ -12,9 +12,7 @@ interface MeasurementToolsPanelProps {
   onRawDistanceTypeSelect: (type: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null) => void;
   selectedAngleType: 'angle_a' | 'angle_b' | null;
   selectedAreaType: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null;
-  selectedDistanceType: 'distance_ratio' | null;
   selectedRawDistanceType: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null;
-  distanceMeasurementStep?: 'horizontal' | 'vertical' | null;
   onUndo: () => void;
   onRedo: () => void;
   onClearAll: () => void;
@@ -30,9 +28,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   onRawDistanceTypeSelect,
   selectedAngleType,
   selectedAreaType,
-  selectedDistanceType,
   selectedRawDistanceType,
-  distanceMeasurementStep,
   onUndo,
   onRedo,
   onClearAll,
@@ -389,7 +385,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
         </div>
 
         {/* Instructions */}
-        {(selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType) && (
+        {(selectedAngleType || selectedAreaType || selectedRawDistanceType) && (
           <div className="bg-yellow-800 rounded-lg p-3 border-2 border-yellow-600 flex-shrink-0">
             <h4 className="text-sm font-medium text-yellow-100 mb-2">📋 Instructions</h4>
             {selectedAngleType && (
@@ -417,28 +413,6 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
                   <li>2. At least 3 points required</li>
                   <li>3. Press <kbd className="bg-yellow-700 px-1 rounded text-yellow-100">Enter</kbd> to finish</li>
                 </ol>
-                <p className="text-xs text-yellow-200 mt-2 italic">
-                  💡 Click the tool again to unselect
-                </p>
-              </>
-            )}
-            {selectedDistanceType && (
-              <>
-                <p className="text-xs text-yellow-200">
-                  Measure horizontal and vertical distances for ratio calculation:
-                </p>
-                <ol className="text-xs text-yellow-200 mt-1 ml-4">
-                  <li>1. Click 2 points for <strong>horizontal</strong> distance</li>
-                  <li>2. Click 2 points for <strong>vertical</strong> distance</li>
-                  <li>3. Ratio will be calculated as (X/Y) × 100</li>
-                </ol>
-                {distanceMeasurementStep && (
-                  <div className="mt-2 p-2 bg-yellow-700 rounded">
-                    <p className="text-xs text-yellow-100 font-medium">
-                      📍 Current step: {distanceMeasurementStep === 'horizontal' ? 'Measuring horizontal distance' : 'Measuring vertical distance'}
-                    </p>
-                  </div>
-                )}
                 <p className="text-xs text-yellow-200 mt-2 italic">
                   💡 Click the tool again to unselect
                 </p>

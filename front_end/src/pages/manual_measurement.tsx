@@ -32,8 +32,7 @@ function ManualMeasurement() {
   // Simple state management - no memo, no complex optimization
   const [selectedAngleType, setSelectedAngleType] = useState<'angle_a' | 'angle_b' | null>(null);
   const [selectedAreaType, setSelectedAreaType] = useState<'area_a' | 'area_b' | 'area_av' | 'area_bv' | null>(null);
-  const [selectedDistanceType, setSelectedDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
-  const [distanceMeasurementStep, setDistanceMeasurementStep] = useState<'horizontal' | 'vertical' | null>(null);
+  const [selectedRawDistanceType, setSelectedRawDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
   // const [horizontalPoints, setHorizontalPoints] = useState<number[][]>([]);
 
   const initialState: MeasurementState = {
@@ -76,7 +75,7 @@ function ManualMeasurement() {
   }, [redo, canRedo]);
 
   // Add at the top, after other hooks
-  const [selectedRawDistanceType, setSelectedRawDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
+  // const [selectedRawDistanceType, setSelectedRawDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
 
   // Add this function after your other measurement handlers
   const handleRawDistanceToolSelect = (key: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null) => {
@@ -84,8 +83,6 @@ function ManualMeasurement() {
       setSelectedRawDistanceType(null);
       setSelectedAngleType(null);
       setSelectedAreaType(null);
-      setSelectedDistanceType(null);
-      setDistanceMeasurementStep(null);
       setMeasurementState({
         ...measurementState,
         currentPoints: [],
@@ -98,8 +95,6 @@ function ManualMeasurement() {
     setSelectedRawDistanceType(key);
     setSelectedAngleType(null);
     setSelectedAreaType(null);
-    setSelectedDistanceType(null);
-    setDistanceMeasurementStep(null);
     setMeasurementState({
       ...measurementState,
       currentPoints: [],
@@ -162,33 +157,23 @@ function ManualMeasurement() {
         if (currentPoints.length < 3) {
           setSelectedAngleType(activeToolSubtype as 'angle_a' | 'angle_b');
           setSelectedAreaType(null);
-          setSelectedDistanceType(null);
+          setSelectedRawDistanceType(null);
         } else {
           console.log('🔄 Not reselecting angle tool - 3 points already exist');
           setSelectedAngleType(null);
           setSelectedAreaType(null);
-          setSelectedDistanceType(null);
+          setSelectedRawDistanceType(null);
         }
       } else if (activeToolType === 'area') {
         setSelectedAreaType(activeToolSubtype as 'area_a' | 'area_b' | 'area_av' | 'area_bv');
         setSelectedAngleType(null);
-        setSelectedDistanceType(null);
+        setSelectedRawDistanceType(null);
       } else if (activeToolType === 'distance') {
-        // Distance tools - handle both distance_ratio (4 points) and raw distance (2 points)
-        if (activeToolSubtype === 'distance_ratio') {
-          // Only reselect if we have less than 4 points (incomplete measurement)
-          if (currentPoints.length < 4) {
-            setSelectedDistanceType('distance_ratio');
-            setSelectedAngleType(null);
-            setSelectedAreaType(null);
-          }
-        } else if (['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(activeToolSubtype as string)) {
+        // Distance tools - only raw distance (2 points)
+        if (['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(activeToolSubtype as string)) {
           // Only reselect if we have less than 2 points (incomplete measurement)
           if (currentPoints.length < 2) {
             setSelectedRawDistanceType(activeToolSubtype as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h');
-            setSelectedAngleType(null);
-            setSelectedAreaType(null);
-            setSelectedDistanceType(null);
           }
         }
       }
@@ -198,8 +183,7 @@ function ManualMeasurement() {
         console.log('🔄 Clearing tools - no points and no active context');
         setSelectedAngleType(null);
         setSelectedAreaType(null);
-        setSelectedDistanceType(null);
-        setDistanceMeasurementStep(null);
+        setSelectedRawDistanceType(null);
       }
     }
   }, [measurementState]); // React to any measurementState changes
@@ -215,40 +199,23 @@ function ManualMeasurement() {
       // If no active tool in the restored state, deselect all tools
       setSelectedAngleType(null);
       setSelectedAreaType(null);
-      setSelectedDistanceType(null);
       setSelectedRawDistanceType(null);
-      setDistanceMeasurementStep(null);
     } else {
       // Sync tool selection based on the restored active tool
       if (activeToolType === 'angle') {
         setSelectedAngleType(activeToolSubtype as 'angle_a' | 'angle_b');
         setSelectedAreaType(null);
-        setSelectedDistanceType(null);
         setSelectedRawDistanceType(null);
-        setDistanceMeasurementStep(null);
       } else if (activeToolType === 'area') {
         setSelectedAngleType(null);
         setSelectedAreaType(activeToolSubtype as 'area_a' | 'area_b' | 'area_av' | 'area_bv');
-        setSelectedDistanceType(null);
         setSelectedRawDistanceType(null);
-        setDistanceMeasurementStep(null);
       } else if (activeToolType === 'distance') {
         setSelectedAngleType(null);
         setSelectedAreaType(null);
         
-        if (activeToolSubtype === 'distance_ratio') {
-          setSelectedDistanceType('distance_ratio');
-          setSelectedRawDistanceType(null);
-          // Set measurement step based on current points
-          if (measurementState.currentPoints.length <= 2) {
-            setDistanceMeasurementStep('horizontal');
-          } else {
-            setDistanceMeasurementStep('vertical');
-          }
-        } else {
-          setSelectedDistanceType(null);
+        if (['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(activeToolSubtype as string)) {
           setSelectedRawDistanceType(activeToolSubtype as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h');
-          setDistanceMeasurementStep(null);
         }
       }
     }
@@ -259,7 +226,6 @@ function ManualMeasurement() {
     console.log('🎯 PARENT - Angle type selected:', type);
     setSelectedAngleType(type);
     setSelectedAreaType(null);
-    setSelectedDistanceType(null);
     setSelectedRawDistanceType(null); // Add this line
     
     // Update state with tool context using set method
@@ -276,7 +242,6 @@ function ManualMeasurement() {
     console.log('🎯 PARENT - Area type selected:', type);
     setSelectedAreaType(type);
     setSelectedAngleType(null);
-    setSelectedDistanceType(null);
     setSelectedRawDistanceType(null); // Add this line
     
     // Update state with tool context using set method
@@ -300,7 +265,7 @@ function ManualMeasurement() {
     if (event.button !== 0) return;
 
     // Only allow clicks if a tool is selected
-    if (!selectedAngleType && !selectedAreaType && !selectedDistanceType && !selectedRawDistanceType) {
+    if (!selectedAngleType && !selectedAreaType && !selectedRawDistanceType) {
       return;
     }
 
@@ -351,20 +316,20 @@ function ManualMeasurement() {
     console.log('📍 New points:', newPoints);
     
     // Handle distance measurements with persistent points
-    if (selectedDistanceType) {
+    if (selectedRawDistanceType) {
       // Update points immediately - all points stay visible
       setMeasurementState({
         ...measurementState,
         currentPoints: newPoints,
         activeToolType: 'distance',
-        activeToolSubtype: selectedDistanceType
+        activeToolSubtype: selectedRawDistanceType
       });
       
       // Update the measurement step based on point count
       if (newPoints.length <= 2) {
-        setDistanceMeasurementStep('horizontal');
+        // setDistanceMeasurementStep('horizontal'); // REMOVED
       } else if (newPoints.length <= 4) {
-        setDistanceMeasurementStep('vertical');
+        // setDistanceMeasurementStep('vertical'); // REMOVED
       }
       
       // Auto-calculate when we have all 4 points
@@ -396,9 +361,9 @@ function ManualMeasurement() {
       // Preserve tool context for undo/redo - fix to handle all tool types
       activeToolType: selectedAngleType ? 'angle' as const : 
                        selectedAreaType ? 'area' as const : 
-                       (selectedDistanceType || selectedRawDistanceType) ? 'distance' as const : 
+                       selectedRawDistanceType ? 'distance' as const : 
                        undefined,
-      activeToolSubtype: (selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType) as any
+      activeToolSubtype: (selectedAngleType || selectedAreaType || selectedRawDistanceType) as any
     };
     
     console.log('💾 Saving state for undo:', newState);
@@ -663,7 +628,7 @@ function ManualMeasurement() {
     resetMeasurementState(initialState);
     setSelectedAngleType(null);
     setSelectedAreaType(null);
-    setSelectedDistanceType(null);
+    setSelectedRawDistanceType(null);
   };
 
   useEffect(() => {
@@ -706,7 +671,7 @@ function ManualMeasurement() {
     if (selectedAreaType) {
       return `${selectedAreaType.replace('_', ' ')}: ${currentPoints.length} points${currentPoints.length >= 3 ? ' (press Enter to finish)' : ''}`;
     }
-    if (selectedDistanceType) {
+    if (selectedRawDistanceType) {
       if (currentPoints.length === 0) {
         return `Distance Ratio - Click first horizontal point`;
       } else if (currentPoints.length === 1) {
@@ -788,7 +753,7 @@ function ManualMeasurement() {
                     
                     if (selectedAreaType || measurementState.activeToolType === 'area') {
                       pointColor = 'bg-green-500';
-                    } else if (selectedDistanceType || measurementState.activeToolType === 'distance') {
+                    } else if (selectedRawDistanceType || measurementState.activeToolType === 'distance') {
                       // First 2 points are horizontal (blue), last 2 are vertical (red)
                       pointColor = index < 2 ? 'bg-blue-500' : 'bg-red-500';
                     }
@@ -876,7 +841,7 @@ function ManualMeasurement() {
                   )}
 
                   {/* Lines for distance measurement */}
-                  {(selectedDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
+                  {(selectedRawDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
                     <svg 
                       className="absolute top-0 left-0 pointer-events-none z-5"
                       style={{ width: '100%', height: '100%' }}
@@ -911,7 +876,7 @@ function ManualMeasurement() {
                 </div>
                 
                 {/* Status indicator */}
-                {(selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType || measurementState.activeToolType) && (
+                {(selectedAngleType || selectedAreaType || selectedRawDistanceType || measurementState.activeToolType) && (
                   <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm z-20">
                     {getStatusText()}
                   </div>
@@ -922,7 +887,7 @@ function ManualMeasurement() {
                     <div className="text-white">
                       {selectedAreaType ? 'Calculating area...' : 
                        selectedAngleType ? 'Calculating angle...' : 
-                       selectedDistanceType ? 'Calculating distance ratio...' : 'Processing...'}
+                       selectedRawDistanceType ? 'Calculating distance...' : 'Processing...'}
                     </div>
                   </div>
                 )}
@@ -946,9 +911,7 @@ function ManualMeasurement() {
               onRawDistanceTypeSelect={handleRawDistanceToolSelect}
               selectedAngleType={selectedAngleType}
               selectedAreaType={selectedAreaType}
-              selectedDistanceType={selectedDistanceType}
               selectedRawDistanceType={selectedRawDistanceType}
-              distanceMeasurementStep={distanceMeasurementStep}
               onUndo={handleUndo}
               onRedo={handleRedo}
               onClearAll={handleClearAll}
