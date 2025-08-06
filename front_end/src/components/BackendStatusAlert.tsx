@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTheme } from '../contexts/theme-context'
-import { checkBackendHealth, getBackendErrorMessage } from '../utils/backendHealth'
+import { getBackendErrorMessage } from '../utils/backendHealth'
 
 interface BackendStatusAlertProps {
   isVisible: boolean
