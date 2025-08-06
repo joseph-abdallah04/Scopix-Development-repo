@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import InterGraph from '../components/inter_graph'
 import { useTheme } from '../contexts/theme-context'
 import { useFullscreen } from '../contexts/fullscreen'
-import { FiMaximize, FiMinimize, FiArrowLeft, FiDownload } from "react-icons/fi"
+import { FiMaximize, FiMinimize, FiArrowLeft, FiDownload, FiChevronUp, FiChevronDown } from "react-icons/fi"
 import { useEffect, useState } from 'react'
 import { useCSVResultStore } from '../stores/csvResultStore'
 import PreviewTable from "../components/previewtable"
@@ -16,6 +16,8 @@ function CSVResultsPage() {
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [scrollProgress, setScrollProgress] = useState(0)
+  const [currentSection, setCurrentSection] = useState(0)
 
   const {
     ref: previewRef,
@@ -40,6 +42,43 @@ function CSVResultsPage() {
 
     setLoading(false)
   }, [chartData, segmentData])
+
+  // Scroll tracking useEffect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollContainer = document.querySelector('.scroll-container')
+      if (scrollContainer) {
+        const scrollTop = scrollContainer.scrollTop
+        const scrollHeight = scrollContainer.scrollHeight - scrollContainer.clientHeight
+        const progress = (scrollTop / scrollHeight) * 100
+        setScrollProgress(Math.min(progress, 100))
+
+        // Determine current section based on scroll position
+        if (progress < 50) {
+          setCurrentSection(0) // Chart section
+        } else {
+          setCurrentSection(1) // Table section
+        }
+      }
+    }
+
+    const scrollContainer = document.querySelector('.scroll-container')
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll)
+      return () => scrollContainer.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
+
+  const scrollToSection = (sectionIndex: number) => {
+    const scrollContainer = document.querySelector('.scroll-container')
+    if (scrollContainer) {
+      const targetPosition = sectionIndex * window.innerHeight
+      scrollContainer.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      })
+    }
+  }
 
 const handleExport = async () => {
   try {
@@ -223,6 +262,76 @@ const handleExport = async () => {
           >
             <FiDownload className="w-4 h-4" />
             Export
+          </button>
+        </div>
+      </div>
+
+      {/* Scroll Indicator - Fixed in lower right corner */}
+      <div className="fixed bottom-24 right-6 z-30 flex flex-col items-center gap-2">
+        {/* Progress Circle */}
+        <div className={`relative w-12 h-12 rounded-full border-2 ${
+          isDarkMode 
+            ? 'border-gray-600 bg-gray-800/80' 
+            : 'border-gray-300 bg-white/80'
+        } backdrop-blur-md shadow-lg transition-all duration-300`}>
+          {/* Progress Ring */}
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke={isDarkMode ? '#374151' : '#e5e7eb'}
+              strokeWidth="2"
+            />
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              strokeDasharray={`${scrollProgress}, 100`}
+              className="transition-all duration-300"
+            />
+          </svg>
+          
+          {/* Section Indicator */}
+          <div className={`absolute inset-0 flex items-center justify-center text-xs font-semibold ${
+            isDarkMode ? 'text-white' : 'text-gray-700'
+          }`}>
+            {currentSection + 1}
+          </div>
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => scrollToSection(0)}
+            className={`p-2 rounded-full transition-all duration-300 backdrop-blur-md ${
+              currentSection === 0
+                ? isDarkMode 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-blue-600 text-white shadow-lg'
+                : isDarkMode
+                  ? 'bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 hover:text-white'
+                  : 'bg-white/80 text-gray-600 hover:bg-gray-100/80 hover:text-gray-800'
+            } shadow-md hover:shadow-lg transform hover:scale-110`}
+            title="Go to Chart Section"
+          >
+            <FiChevronUp size={16} />
+          </button>
+          
+          <button
+            onClick={() => scrollToSection(1)}
+            className={`p-2 rounded-full transition-all duration-300 backdrop-blur-md ${
+              currentSection === 1
+                ? isDarkMode 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-blue-600 text-white shadow-lg'
+                : isDarkMode
+                  ? 'bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 hover:text-white'
+                  : 'bg-white/80 text-gray-600 hover:bg-gray-100/80 hover:text-gray-800'
+            } shadow-md hover:shadow-lg transform hover:scale-110`}
+            title="Go to Table Section"
+          >
+            <FiChevronDown size={16} />
           </button>
         </div>
       </div>
