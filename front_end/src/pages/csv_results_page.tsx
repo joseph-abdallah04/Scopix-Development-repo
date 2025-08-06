@@ -87,12 +87,16 @@ const handleExport = async () => {
             ref={chartRef}
             className={`relative ${
               isChartFullscreen
-                ? "fixed inset-0 z-30 bg-white dark:bg-gray-900 overflow-hidden"
+                ? "fixed inset-0 z-30 overflow-hidden"
                 : "rounded-xl p-4 shadow-lg"
             } text-sm border ${
-              isDarkMode
-                ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
-                : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
+              isChartFullscreen
+                ? isDarkMode 
+                  ? 'bg-gray-900 border-gray-700 text-white'
+                  : 'bg-white border-gray-200 text-gray-900'
+                : isDarkMode
+                  ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                  : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
             }`}
           >
             {/* Fullscreen content container */}
@@ -123,7 +127,7 @@ const handleExport = async () => {
               }`}>Results</h2>
               
               <div className={`${
-                isChartFullscreen ? 'flex-1 overflow-hidden' : 'rounded-xl h-[500px] flex items-center justify-center'
+                isChartFullscreen ? 'flex-1 overflow-hidden' : 'rounded-xl h-[600px] flex items-center justify-center'
               } ${
                 isDarkMode 
                   ? 'bg-transparent text-white/70' 
@@ -150,12 +154,16 @@ const handleExport = async () => {
             ref={previewRef}
             className={`relative ${
               isFullscreen
-                ? "fixed inset-0 z-30 bg-white dark:bg-gray-900 overflow-hidden"
+                ? "fixed inset-0 z-30 overflow-hidden"
                 : "rounded-xl p-4 shadow-lg"
             } text-sm border ${
-              isDarkMode
-                ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
-                : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
+              isFullscreen
+                ? isDarkMode 
+                  ? 'bg-gray-900 border-gray-700 text-white'
+                  : 'bg-white border-gray-200 text-gray-900'
+                : isDarkMode
+                  ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                  : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
             }`}
           >
             {/* Fullscreen content container */}
