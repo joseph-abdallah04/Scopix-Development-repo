@@ -101,7 +101,6 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   // Add the missing state variables after the other state declarations (around line 76)
   const [frameMetadata, setFrameMetadata] = useState<FrameMetadata[]>([]);
   const [baselineFrameId, setBaselineFrameId] = useState<string | null>(null);
-  const [, setCurrentView] = useState<'analysis' | 'frames'>('analysis');
 
   // Calculate frame duration and total frames
   // const frameDuration = 1 / fps;

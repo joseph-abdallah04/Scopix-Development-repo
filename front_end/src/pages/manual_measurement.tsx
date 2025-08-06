@@ -956,7 +956,6 @@ function ManualMeasurement() {
               onSave={saveMeasurements}
               onAngleTypeSelect={handleAngleTypeSelect}
               onAreaTypeSelect={handleAreaTypeSelect}
-              onDistanceTypeSelect={handleDistanceTypeSelect}
               onRawDistanceTypeSelect={handleRawDistanceToolSelect}
               selectedAngleType={selectedAngleType}
               selectedAreaType={selectedAreaType}
