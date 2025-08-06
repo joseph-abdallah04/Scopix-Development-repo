@@ -49,4 +49,20 @@ html {
   animation: fade-in-up 0.8s ease-out;
 }
 
+/* Scroll indicator entry animation */
+@keyframes fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in-right {
+  animation: fade-in-right 0.8s ease-out 0.2s both;
+}
+
 

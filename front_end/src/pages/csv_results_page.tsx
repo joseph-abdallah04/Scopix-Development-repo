@@ -267,7 +267,7 @@ const handleExport = async () => {
       </div>
 
       {/* Scroll Indicator - Fixed in lower right corner */}
-      <div className="fixed bottom-24 right-6 z-30 flex flex-col items-center gap-2">
+      <div className="fixed bottom-24 right-6 z-30 flex flex-col items-center gap-2 animate-fade-in-right">
         {/* Progress Circle */}
         <div className={`relative w-12 h-12 rounded-full border-2 ${
           isDarkMode 
