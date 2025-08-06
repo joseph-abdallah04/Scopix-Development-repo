@@ -228,6 +228,56 @@ function ManualMeasurement() {
     }
   }, [measurementState]); // React to any measurementState changes
 
+  // Add useEffect to sync tool selection states with measurementState after undo/redo
+  useEffect(() => {
+    // When measurementState changes due to undo/redo, sync the tool selection states
+    const { activeToolType, activeToolSubtype } = measurementState;
+    
+    console.log('🔄 Syncing tool states after state change:', { activeToolType, activeToolSubtype });
+    
+    if (!activeToolType || !activeToolSubtype) {
+      // If no active tool in the restored state, deselect all tools
+      setSelectedAngleType(null);
+      setSelectedAreaType(null);
+      setSelectedDistanceType(null);
+      setSelectedRawDistanceType(null);
+      setDistanceMeasurementStep(null);
+    } else {
+      // Sync tool selection based on the restored active tool
+      if (activeToolType === 'angle') {
+        setSelectedAngleType(activeToolSubtype as 'angle_a' | 'angle_b');
+        setSelectedAreaType(null);
+        setSelectedDistanceType(null);
+        setSelectedRawDistanceType(null);
+        setDistanceMeasurementStep(null);
+      } else if (activeToolType === 'area') {
+        setSelectedAngleType(null);
+        setSelectedAreaType(activeToolSubtype as 'area_a' | 'area_b' | 'area_av' | 'area_bv');
+        setSelectedDistanceType(null);
+        setSelectedRawDistanceType(null);
+        setDistanceMeasurementStep(null);
+      } else if (activeToolType === 'distance') {
+        setSelectedAngleType(null);
+        setSelectedAreaType(null);
+        
+        if (activeToolSubtype === 'distance_ratio') {
+          setSelectedDistanceType('distance_ratio');
+          setSelectedRawDistanceType(null);
+          // Set measurement step based on current points
+          if (measurementState.currentPoints.length <= 2) {
+            setDistanceMeasurementStep('horizontal');
+          } else {
+            setDistanceMeasurementStep('vertical');
+          }
+        } else {
+          setSelectedDistanceType(null);
+          setSelectedRawDistanceType(activeToolSubtype as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h');
+          setDistanceMeasurementStep(null);
+        }
+      }
+    }
+  }, [measurementState.activeToolType, measurementState.activeToolSubtype, measurementState.currentPoints.length]);
+
   // Handle angle type selection - SIMPLIFIED
   const handleAngleTypeSelect = (type: 'angle_a' | 'angle_b' | null) => {
     console.log('🎯 PARENT - Angle type selected:', type);

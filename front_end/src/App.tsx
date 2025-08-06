@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState } from "react"
 import { HashRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom"
 
 import NavBar from "./components/nav_bar"
