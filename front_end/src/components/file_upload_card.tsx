@@ -110,7 +110,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
               ? 'border-gray-500 bg-[#181c23] text-white' 
               : 'border-gray-400 bg-gray-50 text-gray-900'
           }`}>
-            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors ${
+            <label className={`cursor-pointer flex flex-col items-center justify-center px-6 py-8 rounded-2xl transition-colors group ${
               isDarkMode 
                 ? 'hover:bg-blue-700' 
                 : 'hover:bg-blue-600'
@@ -119,12 +119,12 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
                 <FiUpload className={`w-20 h-20 transition-colors ${
                   isDarkMode 
                     ? 'text-white' 
-                    : 'text-gray-600'
+                    : 'text-gray-600 group-hover:text-white'
                 }`} />
                 <span className={`mt-2 text-xl transition-colors ${
                   isDarkMode 
                     ? 'text-gray-400' 
-                    : 'text-gray-500'
+                    : 'text-gray-500 group-hover:text-white'
                 }`}>{fileLabel}</span>
               </div>
               <input
