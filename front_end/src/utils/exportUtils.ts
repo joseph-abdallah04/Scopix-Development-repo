@@ -136,19 +136,36 @@ export const downloadExcelFile = async (exportData: ExportData): Promise<void> =
     // Convert response to blob
     const blob = await response.blob();
     
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
+    // Check if we're in Electron environment
+    const isElectron = (window as any).electronAPI?.isElectron || 
+                      window.navigator.userAgent.toLowerCase().includes('electron');
     
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+    if (isElectron && (window as any).electronAPI?.downloadFile) {
+      // Use Electron's download API
+      const url = window.URL.createObjectURL(blob);
+      try {
+        await (window as any).electronAPI.downloadFile(url, filename);
+      } finally {
+        window.URL.revokeObjectURL(url);
+      }
+    } else {
+      // For web browsers or fallback, use the standard approach
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup URL after a delay to ensure download starts
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+    }
     
   } catch (error) {
     console.error('Export failed:', error);
