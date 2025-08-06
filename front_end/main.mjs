@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'path';
 import { spawn } from 'child_process';
 import net from 'net';
@@ -114,39 +114,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false, // Allow file downloads
-      allowRunningInsecureContent: true, // Allow downloads
     },
     show: false,
     // Enable auto-hide scrollbars
     autoHideMenuBar: true,
-  });
-
-  // Handle file downloads
-  mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
-    // Set the save path, making Electron not to prompt a save dialog.
-    const savePath = path.join(app.getPath('downloads'), item.getFilename());
-    item.setSavePath(savePath);
-    
-    item.on('updated', (event, state) => {
-      if (state === 'interrupted') {
-        console.log('Download is interrupted but can be resumed');
-      } else if (state === 'progressing') {
-        if (item.isPaused()) {
-          console.log('Download is paused');
-        } else {
-          console.log(`Received bytes: ${item.getReceivedBytes()}`);
-        }
-      }
-    });
-    
-    item.once('done', (event, state) => {
-      if (state === 'completed') {
-        console.log('Download successfully');
-      } else {
-        console.log(`Download failed: ${state}`);
-      }
-    });
   });
 
   // Enable auto-hide scrollbars
@@ -162,20 +133,34 @@ function createWindow() {
       }
       
       ::-webkit-scrollbar-thumb {
-        background: transparent;
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 4px;
+        transition: background-color 0.2s ease;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+      
+      /* Auto-hide scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      /* Hide scrollbar by default */
+      ::-webkit-scrollbar-thumb {
+        background: transparent;
         transition: background-color 0.3s ease;
       }
       
       /* Show scrollbar on hover */
       *:hover::-webkit-scrollbar-thumb {
-        background: #565a6e;
-        transition: background-color 0.2s ease 0.1s;
+        background: rgba(0, 0, 0, 0.2);
       }
       
-      ::-webkit-scrollbar-thumb:hover {
-        background: #34548a;
-        transition: background-color 0.1s ease;
+      *:hover::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
       }
       
       /* Dark mode scrollbar */
@@ -184,31 +169,13 @@ function createWindow() {
       }
       
       .dark *:hover::-webkit-scrollbar-thumb {
-        background: #c0caf5;
-        transition: background-color 0.2s ease 0.1s;
+        background: rgba(255, 255, 255, 0.2);
       }
       
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #7aa2f7;
-        transition: background-color 0.1s ease;
+      .dark *:hover::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
     `);
-  });
-
-  // IPC handlers for file downloads
-  ipcMain.handle('download-file', async (event, url, filename) => {
-    try {
-      const response = await fetch(url);
-      const buffer = await response.arrayBuffer();
-      const downloadsPath = app.getPath('downloads');
-      const filePath = path.join(downloadsPath, filename);
-      
-      fs.writeFileSync(filePath, Buffer.from(buffer));
-      return { success: true, path: filePath };
-    } catch (error) {
-      console.error('Download failed:', error);
-      return { success: false, error: error.message };
-    }
   });
 
   Menu.setApplicationMenu(null);

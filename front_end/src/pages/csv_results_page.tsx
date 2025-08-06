@@ -91,37 +91,13 @@ const handleExport = async () => {
     }
 
     const blob = await response.blob()
-    
-    // Check if we're in Electron environment
-    const isElectron = (window as any).electronAPI?.isElectron || 
-                      window.navigator.userAgent.toLowerCase().includes('electron');
-    
-    if (isElectron && (window as any).electronAPI?.downloadFile) {
-      // Use Electron's download API
-      const url = URL.createObjectURL(blob)
-      try {
-        await (window as any).electronAPI.downloadFile(url, "report.zip");
-      } finally {
-        URL.revokeObjectURL(url)
-      }
-    } else {
-      // For web browsers or fallback, use the standard approach
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "report.zip"
-      a.style.display = 'none'
-      
-      // Append to body, click, and remove
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      
-      // Cleanup URL after a delay to ensure download starts
-      setTimeout(() => {
-        URL.revokeObjectURL(url)
-      }, 1000)
-    }
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "report.zip"
+    a.click()
+    URL.revokeObjectURL(url)
   } catch (err) {
     console.error(err)
     alert("Failed to export report.")

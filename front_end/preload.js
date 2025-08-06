@@ -1,14 +1,6 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
-  versions: process.versions,
-  
-  // Download handling
-  downloadFile: (url, filename) => {
-    return ipcRenderer.invoke('download-file', url, filename);
-  },
-  
-  // Check if we're in Electron
-  isElectron: true
+  versions: process.versions
 });
