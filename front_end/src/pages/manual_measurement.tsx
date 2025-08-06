@@ -318,19 +318,19 @@ function ManualMeasurement() {
       selectedRawDistanceType &&
       ['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(selectedRawDistanceType)
     ) {
-      // Only allow up to 2 points
+      // **FIX: Prevent adding more than 2 points for distance measurements**
       if (currentPoints.length >= 2) {
-        setSelectedRawDistanceType(null);
-        setMeasurementState({
-          ...measurementState,
-          currentPoints: [],
-          activeToolType: undefined,
-          activeToolSubtype: undefined,
-        });
+        console.log('🚫 Distance measurement already has 2 points, cannot add more');
         return;
       }
 
+      // **FIX: For distance tools, if there are already 2 points and a measurement exists, prevent new points**
       const key = selectedRawDistanceType as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h';
+      if (currentPoints.length === 2 && measurements[key]) {
+        console.log('🚫 Distance measurement already completed, cannot add more points');
+        return;
+      }
+
       const newPoints = [...currentPoints, [x, y]];
       setMeasurementState({
         ...measurementState,
@@ -374,6 +374,18 @@ function ManualMeasurement() {
         await handleCalculateDistanceRatio(horizontalPts, verticalPts);
       }
       
+      return;
+    }
+
+    // **FIX: Prevent adding more than 3 points for angle measurements**
+    if (selectedAngleType && currentPoints.length >= 3) {
+      console.log('🚫 Angle measurement already has 3 points, cannot add more');
+      return;
+    }
+
+    // **FIX: For angle tools, if there are already 3 points and a measurement exists, prevent new points**
+    if (selectedAngleType && currentPoints.length === 3 && measurements[selectedAngleType]) {
+      console.log('🚫 Angle measurement already completed, cannot add more points');
       return;
     }
 
