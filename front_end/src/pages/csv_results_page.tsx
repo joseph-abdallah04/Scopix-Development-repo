@@ -161,12 +161,12 @@ const handleExport = async () => {
                 {isChartFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
               </button>
 
-              <h2 className={`text-lg font-semibold mb-4 ${
-                isChartFullscreen ? 'pt-16 px-4' : ''
+              <h2 className={`text-lg font-semibold ${
+                isChartFullscreen ? 'pt-12 px-4 mb-2' : 'mb-4'
               }`}>Results</h2>
               
               <div className={`${
-                isChartFullscreen ? 'flex-1 overflow-hidden' : 'rounded-xl h-[600px] flex items-center justify-center'
+                isChartFullscreen ? 'flex-1 overflow-hidden min-h-0' : 'rounded-xl h-[600px] flex items-center justify-center'
               } ${
                 isDarkMode 
                   ? 'bg-transparent text-white/70' 

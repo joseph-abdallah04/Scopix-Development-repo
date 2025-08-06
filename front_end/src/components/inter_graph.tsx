@@ -122,7 +122,7 @@ const InterGraph: React.FC<InterGraphProps> = ({ data = [] }) => {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full ${isFullscreen ? "h-screen" : "min-h-[200px]"}`}
+      className={`relative w-full h-full min-h-[200px]`}
     >
       {(!data || data.length === 0) ? (
         <div className={`w-full h-[500px] rounded-xl border flex items-center justify-center transition-colors duration-300 ${
