@@ -324,7 +324,7 @@ class VideoExportEngine:
         cell.border = self._create_border()
         return current_row + 1
     
-    def _add_measurement_row(self, current_row: int, name: str, value: float, unit: str,
+    def _add_measurement_row(self, current_row: int, name: str, value, unit: str,
                            baseline_comparison: Dict = None, is_baseline: bool = False) -> int:
         """Add a measurement row to the table"""
         # Measurement name
@@ -332,9 +332,18 @@ class VideoExportEngine:
         cell.value = name
         self._apply_style(cell, 'data_cell')
         
-        # Value
+        # Value - FORCE CONVERSION TO NUMBER
         cell = self.worksheet.cell(row=current_row, column=2)
-        cell.value = f"{value:.3f}" if value is not None else "Not calculated"
+        if value is not None:
+            try:
+                # Convert to float if it's a string, then round
+                numeric_value = float(value) if isinstance(value, str) else value
+                cell.value = numeric_value  # Store as actual number
+                cell.number_format = '0.000'  # Format display to 3 decimal places
+            except (ValueError, TypeError):
+                cell.value = "Invalid number"
+        else:
+            cell.value = "Not calculated"
         self._apply_style(cell, 'data_cell')
         
         # Unit
@@ -353,13 +362,23 @@ class VideoExportEngine:
             cell.value = "N/A"
             self._apply_style(cell, 'data_cell')
         elif baseline_comparison:
-            # For non-baseline frames with baseline comparisons
+            # For non-baseline frames with baseline comparisons - FORCE NUMBER CONVERSION
             cell = self.worksheet.cell(row=current_row, column=4)
-            cell.value = f"{baseline_comparison['percentOfBaseline']:.1f}%"
+            try:
+                percent_value = float(baseline_comparison['percentOfBaseline']) if isinstance(baseline_comparison['percentOfBaseline'], str) else baseline_comparison['percentOfBaseline']
+                cell.value = percent_value / 100  # Store as decimal for percentage formatting
+                cell.number_format = '0.0%'  # Excel percentage format
+            except (ValueError, TypeError, KeyError):
+                cell.value = "-"
             self._apply_style(cell, 'data_cell')
             
             cell = self.worksheet.cell(row=current_row, column=5)
-            cell.value = f"{baseline_comparison['percentChangeFromBaseline']:+.1f}%"
+            try:
+                change_value = float(baseline_comparison['percentChangeFromBaseline']) if isinstance(baseline_comparison['percentChangeFromBaseline'], str) else baseline_comparison['percentChangeFromBaseline']
+                cell.value = change_value / 100  # Store as decimal for percentage formatting
+                cell.number_format = '+0.0%;-0.0%'  # Excel percentage format with + and - signs
+            except (ValueError, TypeError, KeyError):
+                cell.value = "-"
             self._apply_style(cell, 'data_cell')
         else:
             # No baseline set
