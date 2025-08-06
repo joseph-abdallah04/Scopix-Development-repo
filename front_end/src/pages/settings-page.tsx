@@ -30,7 +30,7 @@ function SettingsPage() {
       faqs: [
         {
           question: "How long does analysis take?",
-          answer: "Analysis time varies depending on file size and complexity. Aalysis can take several minutes to an hour."
+          answer: "Analysis time varies depending on file size and complexity. Analysis can take several minutes to an hour."
         },
         {
           question: "What graphs and metrics are generated in CSV Analysis?",
