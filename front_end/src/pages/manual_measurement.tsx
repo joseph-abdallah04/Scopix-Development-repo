@@ -16,7 +16,7 @@ interface MeasurementState {
   currentPoints: number[][];
   // Add context for better undo/redo - update to use new naming convention
   activeToolType?: 'angle' | 'area' | 'distance';
-  activeToolSubtype?: 'angle_a' | 'angle_b' | 'area_a' | 'area_b' | 'area_av' | 'area_bv' | 'distance_ratio' | 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h';
+  activeToolSubtype?: 'angle_a' | 'angle_b' | 'area_a' | 'area_b' | 'area_av' | 'area_bv' | 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h';
 }
 
 function ManualMeasurement() {
@@ -32,7 +32,7 @@ function ManualMeasurement() {
   // Simple state management - no memo, no complex optimization
   const [selectedAngleType, setSelectedAngleType] = useState<'angle_a' | 'angle_b' | null>(null);
   const [selectedAreaType, setSelectedAreaType] = useState<'area_a' | 'area_b' | 'area_av' | 'area_bv' | null>(null);
-  const [selectedDistanceType, setSelectedDistanceType] = useState<'distance_ratio' | null>(null);
+  const [selectedDistanceType, setSelectedDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
   const [distanceMeasurementStep, setDistanceMeasurementStep] = useState<'horizontal' | 'vertical' | null>(null);
   // const [horizontalPoints, setHorizontalPoints] = useState<number[][]>([]);
 
@@ -768,7 +768,7 @@ function ManualMeasurement() {
                 className="relative overflow-hidden w-full h-full flex items-center justify-center"
                 onContextMenu={handleContextMenu}
                 style={{
-                  cursor: (selectedAngleType || selectedAreaType || selectedDistanceType || selectedRawDistanceType) ? 'crosshair' : 'default'
+                  cursor: (selectedAngleType || selectedAreaType || selectedRawDistanceType) ? 'crosshair' : 'default'
                 }}
               >
                 <div className="relative">
