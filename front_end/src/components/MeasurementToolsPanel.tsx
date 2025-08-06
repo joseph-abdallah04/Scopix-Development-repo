@@ -9,7 +9,6 @@ interface MeasurementToolsPanelProps {
   onSave: (measurements: any) => void;
   onAngleTypeSelect: (type: 'angle_a' | 'angle_b' | null) => void;
   onAreaTypeSelect: (type: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null) => void;
-  onDistanceTypeSelect: (type: 'distance_ratio' | null) => void;
   onRawDistanceTypeSelect: (type: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null) => void;
   selectedAngleType: 'angle_a' | 'angle_b' | null;
   selectedAreaType: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null;
@@ -28,7 +27,6 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   onSave,
   onAngleTypeSelect,
   onAreaTypeSelect,
-  onDistanceTypeSelect,
   onRawDistanceTypeSelect,
   selectedAngleType,
   selectedAreaType,
