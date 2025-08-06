@@ -104,7 +104,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   return (
     <div className="flex flex-col items-center justify-center w-full">
       <div className="flex flex-row gap-16 items-start justify-center w-full">
-        <div className="flex flex-col items-center justify-center gap-6">
+        <div className="flex flex-col items-center justify-center gap-6 animate-fade-in-left">
           <div className={`w-[450px] h-[500px] border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-colors duration-300 ${
             isDarkMode 
               ? 'border-gray-500 bg-[#181c23] text-white' 
@@ -146,7 +146,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
         </div>
 
         {instructionList.length > 0 && (
-          <div className="max-w-md text-left mt-4">
+          <div className="max-w-md text-left mt-4 animate-fade-in-right-sync">
             <h2 className={`text-[42px] font-bold mb-2 transition-colors duration-300 ${
               isDarkMode 
                 ? 'text-white' 
@@ -165,7 +165,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
         )}
       </div>
 
-      <div className="flex gap-40 justify-center mt-20 w-full">
+      <div className="flex gap-40 justify-center mt-20 w-full animate-fade-in-up-sync">
         {file && (
           <button
             className={`font-medium rounded-full px-24 py-3 text-base transition-all duration-300 flex items-center gap-2 w-32 justify-center ${

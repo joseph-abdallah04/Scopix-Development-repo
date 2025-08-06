@@ -15,7 +15,7 @@ function NavBar() {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div className="fixed top-4 left-8 right-8 z-50">
+    <div className="fixed top-4 left-8 right-8 z-50 animate-fade-in-down">
       <div className={`backdrop-blur rounded-2xl px-6 py-2 border flex justify-center relative transition-colors duration-300 ${
         isDarkMode 
           ? 'bg-[#232a36]/75 border-gray-500/30 shadow-[0_8px_25px_rgba(148,163,184,0.25)]' 
