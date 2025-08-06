@@ -288,32 +288,7 @@ function ManualMeasurement() {
     });
   };
 
-  // Handle distance type selection
-  const handleDistanceTypeSelect = (type: 'distance_ratio' | null) => {
-    console.log('🎯 PARENT - Distance type selected:', type);
-    setSelectedDistanceType(type);
-    setSelectedAngleType(null);
-    setSelectedAreaType(null);
-    setSelectedRawDistanceType(null); // Add this line
-    
-    if (type) {
-      setDistanceMeasurementStep('horizontal');
-      setMeasurementState({
-        ...measurementState,
-        currentPoints: [],
-        activeToolType: 'distance',
-        activeToolSubtype: type
-      });
-    } else {
-      setDistanceMeasurementStep(null);
-      setMeasurementState({
-        ...measurementState,
-        currentPoints: [],
-        activeToolType: undefined,
-        activeToolSubtype: undefined
-      });
-    }
-  };
+
 
   // Prevent context menu on right-click
   const handleContextMenu = (event: React.MouseEvent) => {
