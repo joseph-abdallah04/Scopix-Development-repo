@@ -7,6 +7,17 @@ import { useEffect, useState } from 'react'
 import { useCSVResultStore } from '../stores/csvResultStore'
 import PreviewTable from "../components/previewtable"
 
+// Type declaration for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      downloadFile: (url: string, filename: string, method?: string, body?: any, headers?: any) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      isElectron: boolean;
+      onDownloadComplete: (callback: (data: any) => void) => void;
+    };
+  }
+}
+
 function CSVResultsPage() {
   const navigate = useNavigate()
   const { isDarkMode } = useTheme()
@@ -82,25 +93,51 @@ function CSVResultsPage() {
 
 const handleExport = async () => {
   try {
-    const response = await fetch("http://localhost:8000/export-zip/", {
-      method: "GET",
-    })
+    // Check if we're running in Electron
+    if (window.electronAPI?.isElectron) {
+      console.log('Using Electron download API for CSV export');
+      
+      // Use Electron's secure download API
+      const result = await window.electronAPI.downloadFile(
+        'http://localhost:8000/export-zip/',
+        'report.zip',
+        'GET'
+      );
+      
+      if (result.success) {
+        console.log('CSV export downloaded successfully to:', result.filePath);
+      } else {
+        if (result.error === 'Download cancelled by user') {
+          console.log('CSV export was cancelled by user');
+          return; // Don't show error for user cancellation
+        } else {
+          throw new Error(`Electron download failed: ${result.error}`);
+        }
+      }
+    } else {
+      console.log('Using browser download API for CSV export');
+      
+      // Fallback to browser download for web version
+      const response = await fetch("http://localhost:8000/export-zip/", {
+        method: "GET",
+      });
 
-    if (!response.ok) {
-      throw new Error("Export failed.")
+      if (!response.ok) {
+        throw new Error("Export failed.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "report.zip";
+      a.click();
+      URL.revokeObjectURL(url);
     }
-
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
-
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "report.zip"
-    a.click()
-    URL.revokeObjectURL(url)
   } catch (err) {
-    console.error(err)
-    alert("Failed to export report.")
+    console.error(err);
+    alert("Failed to export report.");
   }
 }
 

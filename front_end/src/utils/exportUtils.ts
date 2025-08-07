@@ -105,50 +105,90 @@ export const prepareFramesForExport = async (
   return exportData;
 };
 
+// Type declaration for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      downloadFile: (url: string, filename: string, method?: string, body?: any, headers?: any) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      isElectron: boolean;
+      onDownloadComplete: (callback: (data: any) => void) => void;
+    };
+  }
+}
+
 /**
  * Trigger download of Excel file from backend
  */
 export const downloadExcelFile = async (exportData: ExportData): Promise<void> => {
   try {
-    const response = await fetch('http://localhost:8000/session/export-results', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(exportData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.statusText}`);
-    }
-
-    // Get the filename from the response headers
-    const contentDisposition = response.headers.get('Content-Disposition');
+    // Get the filename from the response headers first
     let filename = 'video_analysis_results.xlsx';
     
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-      if (filenameMatch) {
-        filename = filenameMatch[1];
+    // Check if we're running in Electron
+    if (window.electronAPI?.isElectron) {
+      console.log('Using Electron download API');
+      
+      // Use Electron's secure download API with POST data
+      const result = await window.electronAPI.downloadFile(
+        'http://localhost:8000/session/export-results',
+        filename,
+        'POST',
+        exportData
+      );
+      
+      if (result.success) {
+        console.log('File downloaded successfully to:', result.filePath);
+      } else {
+        if (result.error === 'Download cancelled by user') {
+          console.log('Download was cancelled by user');
+          return; // Don't throw error for user cancellation
+        } else {
+          throw new Error(`Electron download failed: ${result.error}`);
+        }
       }
-    }
+    } else {
+      console.log('Using browser download API');
+      
+      // Fallback to browser download for web version
+      const response = await fetch('http://localhost:8000/session/export-results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData)
+      });
 
-    // Convert response to blob
-    const blob = await response.blob();
-    
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Convert response to blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }
     
   } catch (error) {
     console.error('Export failed:', error);

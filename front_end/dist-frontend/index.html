@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scopix</title>
+    <!-- Immediate CSS to prevent white flash -->
+    <style>
+      /* Set dark background immediately to prevent white flash */
+      html, body {
+        background-color: #000000 !important;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Ensure root div also has dark background */
+      #root {
+        background-color: #000000;
+        min-height: 100vh;
+      }
+      
+      /* Smooth transition for theme changes */
+      html, body, #root {
+        transition: background-color 0.3s ease;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-CeVhxWdn.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DDmOX5Ax.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
