@@ -1,9 +1,7 @@
-import React, { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef } from "react"
 import * as echarts from "echarts"
-import { FiMaximize, FiMinimize } from "react-icons/fi"
 import { useTheme } from "../contexts/theme-context"
-
-const currentFullscreenTarget = { current: null as HTMLElement | null }
+import { useFullscreen } from "../contexts/fullscreen"
 
 interface InterGraphProps {
   data?: {
@@ -14,10 +12,10 @@ interface InterGraphProps {
 
 const InterGraph: React.FC<InterGraphProps> = ({ data = [] }) => {
   const chartRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const scrollYBeforeFullscreen = useRef<number>(0)
-  const [isFullscreen, setIsFullscreen] = useState(false)
   const { isDarkMode } = useTheme()
+  const {
+    ref: containerRef,
+    isFullscreen  } = useFullscreen<HTMLDivElement>()
 
   useEffect(() => {
     if (!chartRef.current || !data || data.length === 0) return
@@ -121,50 +119,10 @@ const InterGraph: React.FC<InterGraphProps> = ({ data = [] }) => {
     return () => observer.disconnect()
   }, [])
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isNowFullscreen = !!document.fullscreenElement
-      setIsFullscreen(isNowFullscreen)
-
-      if (!isNowFullscreen) {
-
-        if (currentFullscreenTarget.current === containerRef.current) {
-          setTimeout(() => {
-            window.scrollTo({
-              top: scrollYBeforeFullscreen.current,
-              behavior: "auto",
-            })
-          }, 50)
-        }
-
-        currentFullscreenTarget.current = null
-      }
-    }
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange)
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange)
-  }, [])
-
-
-
-    const toggleFullscreen = () => {
-      if (!document.fullscreenElement) {
-        requestAnimationFrame(() => {
-          scrollYBeforeFullscreen.current = window.scrollY
-          currentFullscreenTarget.current = containerRef.current
-          containerRef.current?.requestFullscreen()
-        })
-      } else {
-        document.exitFullscreen()
-      }
-    }
-
-
-
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full ${isFullscreen ? "h-screen" : "min-h-[200px]"}`}
+      className={`relative w-full h-full min-h-[200px]`}
     >
       {(!data || data.length === 0) ? (
         <div className={`w-full h-[500px] rounded-xl border flex items-center justify-center transition-colors duration-300 ${
@@ -175,21 +133,7 @@ const InterGraph: React.FC<InterGraphProps> = ({ data = [] }) => {
           <p>No data available to display</p>
         </div>
       ) : (
-        <>
-          <button
-            onClick={toggleFullscreen}
-            className={`absolute top-2 right-2 z-10 p-2 rounded-md transition-colors duration-300 ${
-              isDarkMode 
-                ? 'bg-gray-600 hover:bg-gray-500 text-white' 
-                : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-            }`}
-            title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-          >
-            {isFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
-          </button>
-
-          <div
+        <div
             ref={chartRef}
             className={`w-full h-full rounded-xl transition-colors duration-300 ${
               isDarkMode 
@@ -197,7 +141,6 @@ const InterGraph: React.FC<InterGraphProps> = ({ data = [] }) => {
                 : 'bg-transparent border-gray-300'
             }`}
           />
-        </>
       )}
     </div>
   )

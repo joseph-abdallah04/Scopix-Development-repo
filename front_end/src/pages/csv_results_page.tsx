@@ -2,10 +2,21 @@ import { useNavigate } from 'react-router-dom'
 import InterGraph from '../components/inter_graph'
 import { useTheme } from '../contexts/theme-context'
 import { useFullscreen } from '../contexts/fullscreen'
-import { FiMaximize, FiMinimize } from "react-icons/fi"
+import { FiMaximize, FiMinimize, FiArrowLeft, FiDownload, FiChevronUp, FiChevronDown } from "react-icons/fi"
 import { useEffect, useState } from 'react'
 import { useCSVResultStore } from '../stores/csvResultStore'
 import PreviewTable from "../components/previewtable"
+
+// Type declaration for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      downloadFile: (url: string, filename: string, method?: string, body?: any, headers?: any) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      isElectron: boolean;
+      onDownloadComplete: (callback: (data: any) => void) => void;
+    };
+  }
+}
 
 function CSVResultsPage() {
   const navigate = useNavigate()
@@ -16,11 +27,19 @@ function CSVResultsPage() {
 
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [scrollProgress, setScrollProgress] = useState(0)
+  const [currentSection, setCurrentSection] = useState(0)
 
   const {
     ref: previewRef,
     isFullscreen,
     toggleFullscreen
+  } = useFullscreen<HTMLDivElement>()
+
+  const {
+    ref: chartRef,
+    isFullscreen: isChartFullscreen,
+    toggleFullscreen: toggleChartFullscreen
   } = useFullscreen<HTMLDivElement>()
 
   useEffect(() => {
@@ -35,76 +54,207 @@ function CSVResultsPage() {
     setLoading(false)
   }, [chartData, segmentData])
 
-const handleExport = async () => {
-  try {
-    const response = await fetch("http://localhost:8000/export-zip/", {
-      method: "GET",
-    })
+  // Scroll tracking useEffect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollContainer = document.querySelector('.scroll-container')
+      if (scrollContainer) {
+        const scrollTop = scrollContainer.scrollTop
+        const scrollHeight = scrollContainer.scrollHeight - scrollContainer.clientHeight
+        const progress = (scrollTop / scrollHeight) * 100
+        setScrollProgress(Math.min(progress, 100))
 
-    if (!response.ok) {
-      throw new Error("Export failed.")
+        // Determine current section based on scroll position
+        if (progress < 50) {
+          setCurrentSection(0) // Chart section
+        } else {
+          setCurrentSection(1) // Table section
+        }
+      }
     }
 
-    const blob = await response.blob()
-    const url = URL.createObjectURL(blob)
+    const scrollContainer = document.querySelector('.scroll-container')
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll)
+      return () => scrollContainer.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "report.zip"
-    a.click()
-    URL.revokeObjectURL(url)
+  const scrollToSection = (sectionIndex: number) => {
+    const scrollContainer = document.querySelector('.scroll-container')
+    if (scrollContainer) {
+      const targetPosition = sectionIndex * window.innerHeight
+      scrollContainer.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+const handleExport = async () => {
+  try {
+    // Check if we're running in Electron
+    if (window.electronAPI?.isElectron) {
+      console.log('Using Electron download API for CSV export');
+      
+      // Use Electron's secure download API
+      const result = await window.electronAPI.downloadFile(
+        'http://localhost:8000/export-zip/',
+        'report.zip',
+        'GET'
+      );
+      
+      if (result.success) {
+        console.log('CSV export downloaded successfully to:', result.filePath);
+      } else {
+        if (result.error === 'Download cancelled by user') {
+          console.log('CSV export was cancelled by user');
+          return; // Don't show error for user cancellation
+        } else {
+          throw new Error(`Electron download failed: ${result.error}`);
+        }
+      }
+    } else {
+      console.log('Using browser download API for CSV export');
+      
+      // Fallback to browser download for web version
+      const response = await fetch("http://localhost:8000/export-zip/", {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("Export failed.");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "report.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   } catch (err) {
-    console.error(err)
-    alert("Failed to export report.")
+    console.error(err);
+    alert("Failed to export report.");
   }
 }
 
   const handleBack = () => {
-    clearResult()
+    // Navigate immediately
     navigate("/csv-upload")
+    // Clear result after navigation completes
+    setTimeout(() => {
+      clearResult()
+    }, 500)
   }
 
   return (
-    <div className={`w-screen h-screen flex flex-col pt-24 transition-colors duration-300 ${
+    <div className={`w-screen scroll-container transition-colors duration-300 ${
       isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
     }`}>
-      <div className="flex flex-col items-center justify-between px-8 py-8 max-w-3xl w-full mx-auto min-h-[calc(100vh-90px)]">
-        <div className="flex flex-col w-full gap-8 flex-1">
+      {/* Chart Section - Full Page */}
+      <section className="parallax-section w-screen h-screen flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5 pointer-events-none"></div>
+        <div className="w-full max-w-6xl px-4 parallax-element ">
 
-          <div className="w-full">
-            <h2 className="text-lg font-medium mb-4 pl-2">Results</h2>
-            <div className={`rounded-xl h-[500px] p-0 flex items-center justify-center text-sm border ${
-              isDarkMode 
-                ? 'bg-gray-800 border-gray-600 text-white/70' 
-                : 'bg-gray-50 border-gray-300 text-gray-600'
+          <div
+            ref={chartRef}
+            className={`relative ${
+              isChartFullscreen
+                ? "fixed inset-0 z-30 overflow-hidden"
+                : "rounded-xl p-4 shadow-lg"
+            } text-sm border ${
+              isChartFullscreen
+                ? isDarkMode 
+                  ? 'bg-gray-900 border-gray-700 text-white'
+                  : 'bg-white border-gray-200 text-gray-900'
+                : isDarkMode
+                  ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                  : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
+            }`}
+          >
+            {/* Fullscreen content container */}
+            <div className={`relative ${
+              isChartFullscreen 
+                ? "w-full h-full flex flex-col" 
+                : "w-full max-w-7xl mx-auto"
             }`}>
-              {loading ? (
-                <p>Loading chart...</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : (
-                chartData && <InterGraph data={chartData} />
-              )}
+              <button
+                onClick={toggleChartFullscreen}
+                className={`absolute z-10 p-2 rounded-md transition-colors duration-300 ${
+                  isChartFullscreen 
+                    ? 'top-2 right-2' 
+                    : 'top-0 right-0'
+                } ${
+                  isDarkMode 
+                    ? 'bg-gray-600 hover:bg-gray-500 text-white' 
+                    : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                }`}
+                title={isChartFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                aria-label={isChartFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isChartFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
+              </button>
+
+              <h2 className={`text-lg font-semibold ${
+                isChartFullscreen ? 'pt-12 px-4 mb-2' : 'mb-4'
+              }`}>Results</h2>
+              
+              <div className={`${
+                isChartFullscreen ? 'flex-1 overflow-hidden min-h-0' : 'rounded-xl h-[600px] flex items-center justify-center'
+              } ${
+                isDarkMode 
+                  ? 'bg-transparent text-white/70' 
+                  : 'bg-transparent text-gray-600'
+              }`}>
+                {loading ? (
+                  <p>Loading chart...</p>
+                ) : error ? (
+                  <p className="text-red-500">{error}</p>
+                ) : (
+                  chartData && <InterGraph data={chartData} />
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* Table Section - Full Page */}
+      <section className="parallax-section w-screen h-screen flex items-center justify-center relative">
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/5 pointer-events-none"></div>
+        <div className="w-full max-w-6xl px-4 parallax-element ">
           <div
             ref={previewRef}
             className={`relative ${
               isFullscreen
-                ? "fixed inset-0 z-30 flex justify-center items-start bg-white dark:bg-gray-900 overflow-auto pt-16 px-4"
-                : "rounded-xl p-4"
+                ? "fixed inset-0 z-30 overflow-hidden"
+                : "rounded-xl p-4 shadow-lg"
             } text-sm border ${
-              isDarkMode
-                ? 'bg-gray-800 border-gray-600 text-white/80'
-                : 'bg-white border-gray-300 text-gray-800'
+              isFullscreen
+                ? isDarkMode 
+                  ? 'bg-gray-900 border-gray-700 text-white'
+                  : 'bg-white border-gray-200 text-gray-900'
+                : isDarkMode
+                  ? 'bg-gray-800 border-gray-600 text-white/80 shadow-gray-900/50'
+                  : 'bg-white border-gray-300 text-gray-800 shadow-gray-400/30'
             }`}
           >
-            {/* 宽度容器，确保在屏幕中央显示内容 */}
-            <div className="relative w-full max-w-5xl">
+            {/* Fullscreen content container */}
+            <div className={`relative ${
+              isFullscreen 
+                ? "w-full h-full flex flex-col" 
+                : "w-full max-w-7xl mx-auto"
+            }`}>
               <button
                 onClick={toggleFullscreen}
-                className={`absolute top-0 right-0 z-10 p-2 rounded-md transition-colors duration-300 ${
+                className={`absolute z-10 p-2 rounded-md transition-colors duration-300 ${
+                  isFullscreen 
+                    ? 'top-2 right-2' 
+                    : 'top-0 right-0'
+                } ${
                   isDarkMode 
                     ? 'bg-gray-600 hover:bg-gray-500 text-white' 
                     : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
@@ -115,30 +265,111 @@ const handleExport = async () => {
                 {isFullscreen ? <FiMinimize size={18} /> : <FiMaximize size={18} />}
               </button>
 
-              <h2 className="text-lg font-semibold mb-4">Data Preview</h2>
-              <PreviewTable data={segmentData ?? []} />
+              <h2 className={`text-lg font-semibold mb-4 ${
+                isFullscreen ? 'pt-16 px-4' : ''
+              }`}>Data Preview</h2>
+              
+              <div className={`${
+                isFullscreen ? 'flex-1 overflow-hidden' : ''
+              }`}>
+                <PreviewTable data={segmentData ?? []} isFullscreen={isFullscreen} />
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* Action Buttons Section - Fixed at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-6 animate-fade-in-up">
+        <div className="w-full max-w-6xl mx-auto flex justify-between">
+          <button
+            onClick={handleBack}
+            className={`font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md transform hover:scale-105 hover:-translate-y-1 active:scale-95 shadow-lg hover:shadow-xl ${
+              isDarkMode 
+                ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white border border-gray-600' 
+                : 'bg-white/80 hover:bg-gray-100/80 text-gray-900 border border-gray-300'
+            }`}
+          >
+            <FiArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+          <button
+            onClick={handleExport}
+            className="bg-blue-600/80 hover:bg-blue-700/80 text-white font-medium rounded-full px-16 py-3 text-base transition-all duration-300 flex items-center gap-2 backdrop-blur-md border border-blue-500 transform hover:scale-105 hover:-translate-y-1 active:scale-95 shadow-lg hover:shadow-xl"
+          >
+            <FiDownload className="w-4 h-4" />
+            Export
+          </button>
+        </div>
+      </div>
 
-          <div className="w-full flex justify-center pt-8 mt-auto gap-4 flex-wrap">
-            <button
-              onClick={handleBack}
-              className={`font-medium rounded-full px-6 py-3 text-base transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-              }`}
-            >
-              Back
-            </button>
-            <button
-              onClick={handleExport}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-12 py-3 text-base transition-all duration-300"
-            >
-              Export
-            </button>
+      {/* Scroll Indicator - Fixed in lower right corner */}
+      <div className="fixed bottom-24 right-6 z-30 flex flex-col items-center gap-2 animate-fade-in-right">
+        {/* Progress Circle */}
+        <div className={`relative w-12 h-12 rounded-full border-2 ${
+          isDarkMode 
+            ? 'border-gray-600 bg-gray-800/80' 
+            : 'border-gray-300 bg-white/80'
+        } backdrop-blur-md shadow-lg transition-all duration-300`}>
+          {/* Progress Ring */}
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke={isDarkMode ? '#374151' : '#e5e7eb'}
+              strokeWidth="2"
+            />
+            <path
+              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth="2"
+              strokeDasharray={`${scrollProgress}, 100`}
+              className="transition-all duration-300"
+            />
+          </svg>
+          
+          {/* Section Indicator */}
+          <div className={`absolute inset-0 flex items-center justify-center text-xs font-semibold ${
+            isDarkMode ? 'text-white' : 'text-gray-700'
+          }`}>
+            {currentSection + 1}
           </div>
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => scrollToSection(0)}
+            className={`p-2 rounded-full transition-all duration-300 backdrop-blur-md ${
+              currentSection === 0
+                ? isDarkMode 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-blue-600 text-white shadow-lg'
+                : isDarkMode
+                  ? 'bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 hover:text-white'
+                  : 'bg-white/80 text-gray-600 hover:bg-gray-100/80 hover:text-gray-800'
+            } shadow-md hover:shadow-lg transform hover:scale-110`}
+            title="Go to Chart Section"
+          >
+            <FiChevronUp size={16} />
+          </button>
+          
+          <button
+            onClick={() => scrollToSection(1)}
+            className={`p-2 rounded-full transition-all duration-300 backdrop-blur-md ${
+              currentSection === 1
+                ? isDarkMode 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-blue-600 text-white shadow-lg'
+                : isDarkMode
+                  ? 'bg-gray-700/80 text-gray-300 hover:bg-gray-600/80 hover:text-white'
+                  : 'bg-white/80 text-gray-600 hover:bg-gray-100/80 hover:text-gray-800'
+            } shadow-md hover:shadow-lg transform hover:scale-110`}
+            title="Go to Table Section"
+          >
+            <FiChevronDown size={16} />
+          </button>
         </div>
       </div>
     </div>

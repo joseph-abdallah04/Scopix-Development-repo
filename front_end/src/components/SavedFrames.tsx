@@ -1,34 +1,24 @@
 import React, { useState } from 'react';
 import { GoArrowLeft } from 'react-icons/go';
-import { FiDownload } from 'react-icons/fi';
+import { FiDownload, FiEdit2 } from 'react-icons/fi';
 import FrameDetailsPopup from './FrameDetailsPopup';
+import ConfirmationPopup from './ConfirmationPopup';
+import { useTheme } from '../contexts/theme-context';
 
-// Update the SavedFrame interface to include all measurement types
-interface SavedFrame {
-  id: string;
-  name: string;
-  customName?: string;
+// Keep the metadata-only interface but rename props to match original
+interface FrameMetadata {
+  frame_id: string;
+  frame_idx: number;
   timestamp: number;
-  frameIdx?: number;
-  thumbnailUrl?: string;
+  custom_name?: string;
+  created_at: string;
+  thumbnail_url: string;
   isBaseline: boolean;
-  measurements: {
-    glottic_angle?: number | null;
-    supraglottic_angle?: number | null;
-    glottic_area?: number | null;
-    supraglottic_area?: number | null;
-    distance_ratio?: {
-      horizontal_distance: number;
-      vertical_distance: number;
-      ratio_percentage: number;
-      horizontal_points: number[][];
-      vertical_points: number[][];
-    } | null;
-  };
 }
 
 interface SavedFramesProps {
-  savedFrames: SavedFrame[];
+  frameMetadata: FrameMetadata[]; // New data structure
+  baselineFrameId: string | null;
   showBackButton?: boolean;
   backButtonText?: string;
   onBack?: () => void;
@@ -45,38 +35,58 @@ interface SavedFramesProps {
   fps?: number;
 }
 
+// Add character limit constant at the top of the file
+const MAX_FRAME_NAME_LENGTH = 20;
+
 const SavedFrames: React.FC<SavedFramesProps> = ({
-  savedFrames,
+  frameMetadata,
+  baselineFrameId,
   showBackButton = true,
-  backButtonText = "Back to Upload Page",
+  backButtonText = "Back to Video Upload",
   onBack,
   onExport,
   formatTime,
-  // showExportButton = true,
   className = "",
   onRenameFrame,
   onSetBaseline,
   onDeleteFrame,
   isExporting = false,
-  // currentFrameIdx,
-  // totalFrames,
-  // fps,
 }) => {
+  const { isDarkMode } = useTheme();
+  
   const [renamingFrameId, setRenamingFrameId] = useState<string | null>(null);
   const [newFrameName, setNewFrameName] = useState<string>("");
   
   // Add state for frame details popup
   const [showFrameDetails, setShowFrameDetails] = useState(false);
-  const [selectedFrame, setSelectedFrame] = useState<SavedFrame | null>(null);
+  const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
+  
+  // Add state for back confirmation
+  const [showBackConfirmation, setShowBackConfirmation] = useState(false);
 
-  const handleRename = (frame: SavedFrame) => {
-    setRenamingFrameId(frame.id);
-    setNewFrameName(frame.customName || `Frame ${frame.frameIdx}`);
+  const handleRename = (frame: FrameMetadata) => {
+    setRenamingFrameId(frame.frame_id);
+    setNewFrameName(frame.custom_name || `Frame ${frame.frame_idx}`);
   };
 
   const handleSaveRename = (frameId: string) => {
-    if (onRenameFrame && newFrameName.trim()) {
-      onRenameFrame(frameId, newFrameName.trim());
+    // Trim whitespace and validate length
+    const trimmedName = newFrameName.trim();
+    
+    if (trimmedName.length === 0) {
+      // Don't save empty names, revert to original
+      setRenamingFrameId(null);
+      setNewFrameName("");
+      return;
+    }
+    
+    if (trimmedName.length > MAX_FRAME_NAME_LENGTH) {
+      alert(`Frame name cannot exceed ${MAX_FRAME_NAME_LENGTH} characters`);
+      return;
+    }
+    
+    if (onRenameFrame && trimmedName) {
+      onRenameFrame(frameId, trimmedName);
     }
     setRenamingFrameId(null);
     setNewFrameName("");
@@ -91,108 +101,181 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
     }
   };
   
-  // Add handler for double-click on frame
-  const handleFrameDoubleClick = (frame: SavedFrame) => {
-    setSelectedFrame(frame);
+  // Add handler for double-click on frame - now uses frameId for on-demand fetching
+  const handleFrameDoubleClick = (frame: FrameMetadata) => {
+    setSelectedFrameId(frame.frame_id);
     setShowFrameDetails(true);
   };
-  
-  // Find baseline frame
-  const baselineFrame = savedFrames.find(frame => frame.isBaseline) || null;
+
+  // Handle back button click with confirmation
+  const handleBackClick = () => {
+    setShowBackConfirmation(true);
+  };
+
+  // Handle confirmed back navigation
+  const handleConfirmBack = async () => {
+    try {
+      // Clear the session when going back to upload
+      await fetch('http://localhost:8000/session/clear', { method: 'POST' });
+    } catch (error) {
+      console.error('Error clearing session:', error);
+    }
+    
+    setShowBackConfirmation(false);
+    if (onBack) {
+      onBack();
+    }
+  };
+
+  const handleCancelBack = () => {
+    setShowBackConfirmation(false);
+  };
 
   return (
-    <div className={`w-80 flex flex-col gap-4 flex-shrink-0 ${className}`}>
+    <div className={`w-80 flex flex-col gap-4 flex-shrink-0 h-full ${className}`}>
       {/* Back Button */}
-      {showBackButton && onBack && (
+      {showBackButton && (
         <button 
-          onClick={onBack} 
-          className="bg-[#232a36] rounded-2xl px-6 py-3 text-white cursor-pointer transition-colors duration-200 flex items-center justify-center gap-2 w-full"
+          onClick={handleBackClick}
+          className={`rounded-2xl px-6 py-3 cursor-pointer transition-colors duration-200 flex items-center justify-center gap-2 w-full ${
+            isDarkMode 
+              ? 'bg-[#232a36] text-white hover:bg-gray-700' 
+              : 'bg-gray-600 text-white hover:bg-gray-700'
+          }`}
         >
           <GoArrowLeft className="flex-shrink-0" />
           <span className="text-center">{backButtonText}</span>
         </button>
       )}
       
-      {/* Frames Container */}
-      <div className="bg-zinc-900 rounded-xl border border-gray-700 p-4 flex flex-col flex-1 min-h-0">
-        <div className="flex flex-col flex-1 min-h-0">
-          <h3 className="text-xl text-white mb-4 text-center border-b border-gray-700 pb-2 m-0">
+      {/* Frames Container - Dynamic size */}
+      <div className={`flex flex-col rounded-xl border shadow-lg transition-colors duration-300 flex-1 ${
+        isDarkMode 
+          ? 'bg-zinc-900 border-gray-700' 
+          : 'bg-gray-300 border-gray-600'
+      }`}>
+        {/* Header - CENTERED text */}
+        <div className={`p-4 border-b flex items-center justify-center transition-colors duration-300 mx-4 ${
+          isDarkMode 
+            ? 'border-gray-700' 
+            : 'border-gray-500'
+        }`}>
+          <h2 className={`text-lg font-medium transition-colors duration-300 ${
+            isDarkMode ? 'text-white' : 'text-gray-900'
+          }`}>
             Saved Frames
-          </h3>
-          
-          <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 pr-2">
-            {savedFrames.map((frame) => (
-              <div 
-                key={frame.id} 
-                className="bg-gray-700 rounded-lg border border-gray-600 p-3 flex gap-3 flex-shrink-0 group cursor-pointer transition-all duration-200 hover:bg-gray-600 hover:border-blue-500 hover:shadow-md hover:shadow-blue-500/20 hover:translate-x-1 relative"
+          </h2>
+        </div>
+        
+        {/* Content area - FIXED HEIGHT with scroll */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-3">
+            {frameMetadata.map((frame) => (
+              <div
+                key={frame.frame_id}
+                className={`group relative rounded-lg border p-3 cursor-pointer transition-all duration-200 hover:shadow-md flex items-center gap-3 ${
+                  isDarkMode 
+                    ? 'bg-gray-700 border-gray-600 hover:bg-gray-650' 
+                    : 'bg-gray-200 border-gray-400 hover:bg-gray-100'
+                } ${frame.isBaseline ? (isDarkMode ? 'ring-2 ring-yellow-500' : 'ring-2 ring-yellow-600') : ''}`}
                 onDoubleClick={() => handleFrameDoubleClick(frame)}
-                title="Double-click to view details"
               >
-                {frame.thumbnailUrl && (
+                {/* Edit button */}
+                {onRenameFrame && renamingFrameId !== frame.frame_id && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRename(frame);
+                    }}
+                    className={`absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full z-10 ${
+                      isDarkMode 
+                        ? 'text-gray-400 hover:text-blue-400 hover:bg-gray-600/50' 
+                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-300/50'
+                    }`}
+                    title="Rename frame"
+                  >
+                    <FiEdit2 size={12} />
+                  </button>
+                )}
+
+                {/* Thumbnail */}
+                {frame.thumbnail_url && (
                   <img 
-                    src={frame.thumbnailUrl} 
-                    alt={frame.customName || frame.name}
+                    src={frame.thumbnail_url} 
+                    alt={frame.custom_name || `Frame ${frame.frame_idx}`}
                     className="w-15 h-11 rounded object-cover flex-shrink-0 group-hover:ring-2 group-hover:ring-blue-400 transition-all duration-200"
                   />
                 )}
-                <div className="flex flex-col gap-1 flex-1">
+                
+                {/* Frame content - HORIZONTAL layout next to thumbnail */}
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {frame.isBaseline && (
                       <div className="w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0 group-hover:scale-125 transition-transform duration-200"></div>
                     )}
                     
-                    {/* Frame Name - Editable or Display */}
-                    {renamingFrameId === frame.id ? (
-                      <div className="flex-1 flex items-center gap-2">
+                    {/* Frame Name */}
+                    {renamingFrameId === frame.frame_id ? (
+                      <div className="flex-1 flex flex-col gap-1">
                         <input
                           type="text"
                           value={newFrameName}
-                          onChange={(e) => setNewFrameName(e.target.value)}
-                          onKeyDown={(e) => handleKeyPress(e, frame.id)}
-                          onBlur={() => handleSaveRename(frame.id)}
-                          className="flex-1 bg-gray-600 text-white text-sm px-2 py-1 rounded border border-blue-500 focus:outline-none focus:border-blue-400 w-full"
+                          onChange={(e) => {
+                            if (e.target.value.length <= MAX_FRAME_NAME_LENGTH) {
+                              setNewFrameName(e.target.value);
+                            }
+                          }}
+                          onKeyDown={(e) => handleKeyPress(e, frame.frame_id)}
+                          onBlur={() => handleSaveRename(frame.frame_id)}
+                          className={`w-full text-sm px-2 py-1 rounded border focus:outline-none ${
+                            isDarkMode 
+                              ? 'bg-gray-600 text-white border-blue-500 focus:border-blue-400' 
+                              : 'bg-white text-gray-800 border-gray-400 focus:border-blue-400'
+                          }`}
+                          placeholder={`Max ${MAX_FRAME_NAME_LENGTH} characters`}
+                          maxLength={MAX_FRAME_NAME_LENGTH}
                           autoFocus
                         />
-                      </div>
-                    ) : (
-                      <div className="flex-1 flex items-center justify-between">
-                        <span className="font-medium text-white text-sm truncate max-w-[70%]">
-                          {frame.customName || frame.name}
-                        </span>
-                        
-                        <div className="flex items-center gap-1">
-                          {/* Rename Button */}
-                          {onRenameFrame && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRename(frame);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded"
-                            >
-                              Rename
-                            </button>
-                          )}
+                        <div className={`text-xs text-right ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {newFrameName.length}/{MAX_FRAME_NAME_LENGTH}
                         </div>
                       </div>
+                    ) : (
+                      <span className={`font-medium text-sm truncate flex-1 min-w-0 ${
+                        isDarkMode ? 'text-white' : 'text-gray-800'
+                      }`}>
+                        {frame.custom_name || `Frame ${frame.frame_idx}`}
+                      </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className={`text-xs ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                     {formatTime(frame.timestamp)}
                   </div>
-                  <div className="text-xs text-gray-400">
-                    Frame: {frame.frameIdx}
+                  <div className={`text-xs ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
+                    Frame: {frame.frame_idx}
                   </div>
                 </div>
 
-                {/* Double-click indicator that appears on hover */}
-                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-70 transition-opacity duration-200 text-xs text-blue-300 bg-gray-800/70 px-2 py-1 rounded-full">
+                {/* Double-click indicator */}
+                <div className={`absolute bottom-2 right-2 opacity-0 group-hover:opacity-70 transition-opacity duration-200 text-xs px-2 py-1 rounded-full ${
+                  isDarkMode 
+                    ? 'text-blue-300 bg-gray-800/70' 
+                    : 'text-blue-600 bg-gray-300/80'
+                }`}>
                   Double-click
                 </div>
               </div>
             ))}
-            {savedFrames.length === 0 && (
-              <div className="text-center text-gray-500 italic py-8">
+            {frameMetadata.length === 0 && (
+              <div className={`text-center italic py-8 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+              }`}>
                 No frames captured yet
               </div>
             )}
@@ -200,22 +283,16 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
         </div>
         
         {/* Action Buttons */}
-        <div className="p-4 border-t border-gray-700 space-y-3">
-          <button 
-            onClick={onBack} 
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-4 py-3 text-sm cursor-pointer transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <GoArrowLeft />
-            Back to Upload
-          </button>
-          
+        <div className={`p-4 border-t transition-colors duration-300 mx-4 ${
+          isDarkMode ? 'border-gray-700' : 'border-gray-500'
+        }`}>
           <button 
             onClick={onExport}
-            disabled={isExporting || savedFrames.length === 0}
+            disabled={isExporting || frameMetadata.length === 0}
             className={`w-full border-none rounded-lg px-4 py-3 text-sm cursor-pointer transition-colors duration-200 flex items-center justify-center gap-2 ${
-              isExporting || savedFrames.length === 0
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-500 text-white'
+              isExporting || frameMetadata.length === 0
+                ? (isDarkMode ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-gray-400 text-gray-600 cursor-not-allowed')
+                : (isDarkMode ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white')
             }`}
           >
             {isExporting ? (
@@ -233,15 +310,28 @@ const SavedFrames: React.FC<SavedFramesProps> = ({
         </div>
       </div>
       
-      {/* Frame Details Popup */}
-      <FrameDetailsPopup
-        isOpen={showFrameDetails}
-        onClose={() => setShowFrameDetails(false)}
-        frame={selectedFrame}
-        baselineFrame={baselineFrame}
-        formatTime={formatTime}
-        onSetBaseline={onSetBaseline}
-        onDeleteFrame={onDeleteFrame} // Pass the delete handler to the popup
+      {/* Popups remain unchanged */}
+      {selectedFrameId && (
+        <FrameDetailsPopup
+          isOpen={showFrameDetails}
+          onClose={() => setShowFrameDetails(false)}
+          frameId={selectedFrameId}
+          baselineFrameId={baselineFrameId}
+          formatTime={formatTime}
+          onSetBaseline={onSetBaseline}
+          onDeleteFrame={onDeleteFrame}
+          onRenameFrame={onRenameFrame}
+        />
+      )}
+
+      <ConfirmationPopup
+        isOpen={showBackConfirmation}
+        title="Return to Upload"
+        message="Your entire session and all saved frames will be lost. Progress will not be saved until results are exported. Are you sure you want to return to the upload page?"
+        confirmButtonText="Return to Upload"
+        cancelButtonText="Cancel"
+        onConfirm={handleConfirmBack}
+        onCancel={handleCancelBack}
       />
     </div>
   );

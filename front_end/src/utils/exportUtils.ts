@@ -1,12 +1,40 @@
+import { calculateAllBaselineComparisons, type FullFrameData } from './baselineCalculations';
+
 export interface FrameExportData {
   frame_id: string;
   frame_idx: number;
   timestamp: number;
   custom_name: string;
-  measurements: any;
-  calculated_percentages: any;
+  measurements: {
+    angle_a?: number | null;
+    angle_b?: number | null;
+    area_a?: number | null;
+    area_b?: number | null;
+    area_av?: number | null;
+    area_bv?: number | null;
+    distance_a?: number | null;
+    distance_c?: number | null;
+    distance_g?: number | null;
+    distance_h?: number | null;
+  };
+  formulas: {
+    p_factor?: number | null;
+    c_factor?: number | null;
+    distance_ratio_1?: number | null;
+    distance_ratio_2?: number | null;
+    distance_ratio_3?: number | null;
+    distance_ratio_4?: number | null;
+    supraglottic_area_ratio_1?: number | null;
+    supraglottic_area_ratio_2?: number | null;
+  };
+  baseline_comparisons?: {
+    [key: string]: {
+      percentOfBaseline: number;
+      percentChangeFromBaseline: number;
+    } | null;
+  };
   is_baseline?: boolean;
-  thumbnail_url?: string; // Add thumbnail URL
+  thumbnail_url?: string;
 }
 
 export interface ExportData {
@@ -16,121 +44,154 @@ export interface ExportData {
 }
 
 /**
- * Calculate percentage changes for a frame compared to baseline
+ * Prepare frames data for export with all measurements, formulas, and baseline comparisons
  */
-const calculatePercentageChanges = (
-  currentFrame: any,
-  baselineFrame: any
-): any => {
-  if (!baselineFrame || currentFrame.id === baselineFrame.id) {
-    return {}; // No percentages for baseline frame
+export const prepareFramesForExport = async (
+  frameMetadata: any[],
+  baselineFrameId?: string
+): Promise<FrameExportData[]> => {
+  const exportData: FrameExportData[] = [];
+  let baselineFrameData: FullFrameData | null = null;
+
+  // Fetch baseline frame data if we have a baseline
+  if (baselineFrameId) {
+    try {
+      const baselineResponse = await fetch(`http://localhost:8000/session/frame-details/${baselineFrameId}`);
+      if (baselineResponse.ok) {
+        baselineFrameData = await baselineResponse.json();
+      }
+    } catch (error) {
+      console.error('Error fetching baseline frame data:', error);
+    }
   }
 
-  const percentages: any = {};
-  const currentMeasurements = currentFrame.measurements || {};
-  const baselineMeasurements = baselineFrame.measurements || {};
+  // Process each frame
+  for (const frame of frameMetadata) {
+    try {
+      // Fetch full frame data for each frame
+      const frameResponse = await fetch(`http://localhost:8000/session/frame-details/${frame.frame_id}`);
+      if (!frameResponse.ok) {
+        console.error(`Failed to fetch data for frame ${frame.frame_id}`);
+        continue;
+      }
 
-  // Calculate angle percentage changes (using baseline - current formula)
-  if (currentMeasurements.glottic_angle !== undefined && baselineMeasurements.glottic_angle !== undefined) {
-    const change = ((baselineMeasurements.glottic_angle - currentMeasurements.glottic_angle) / baselineMeasurements.glottic_angle) * 100;
-    percentages.glottic_angle_closure = change;
+      const fullFrameData: FullFrameData = await frameResponse.json();
+      
+      // Calculate baseline comparisons if we have baseline data
+      let baselineComparisons = undefined;
+      if (baselineFrameData && frame.frame_id !== baselineFrameId) {
+        baselineComparisons = calculateAllBaselineComparisons(fullFrameData, baselineFrameData);
+      }
+
+      // Prepare export data for this frame
+      const frameExportData: FrameExportData = {
+        frame_id: frame.frame_id,
+        frame_idx: fullFrameData.frame_idx,
+        timestamp: fullFrameData.timestamp,
+        custom_name: fullFrameData.custom_name || `Frame ${fullFrameData.frame_idx}`,
+        measurements: fullFrameData.measurements || {},
+        formulas: fullFrameData.formulas || {},
+        baseline_comparisons: baselineComparisons,
+        is_baseline: frame.frame_id === baselineFrameId,
+        thumbnail_url: frame.thumbnail_url
+      };
+
+      exportData.push(frameExportData);
+    } catch (error) {
+      console.error(`Error processing frame ${frame.frame_id}:`, error);
+    }
   }
 
-  if (currentMeasurements.supraglottic_angle !== undefined && baselineMeasurements.supraglottic_angle !== undefined) {
-    const change = ((baselineMeasurements.supraglottic_angle - currentMeasurements.supraglottic_angle) / baselineMeasurements.supraglottic_angle) * 100;
-    percentages.supraglottic_angle_closure = change;
-  }
-
-  // Calculate area percentage changes (using baseline - current formula)
-  if (currentMeasurements.glottic_area !== undefined && baselineMeasurements.glottic_area !== undefined) {
-    const change = ((baselineMeasurements.glottic_area - currentMeasurements.glottic_area) / baselineMeasurements.glottic_area) * 100;
-    percentages.glottic_area_closure = change;
-  }
-
-  if (currentMeasurements.supraglottic_area !== undefined && baselineMeasurements.supraglottic_area !== undefined) {
-    const change = ((baselineMeasurements.supraglottic_area - currentMeasurements.supraglottic_area) / baselineMeasurements.supraglottic_area) * 100;
-    percentages.supraglottic_area_closure = change;
-  }
-
-  // Calculate distance ratio changes (using current - baseline formula)
-  if (currentMeasurements.distance_ratio?.ratio_percentage !== undefined && baselineMeasurements.distance_ratio?.ratio_percentage !== undefined) {
-    const change = ((currentMeasurements.distance_ratio.ratio_percentage - baselineMeasurements.distance_ratio.ratio_percentage) / baselineMeasurements.distance_ratio.ratio_percentage) * 100;
-    percentages.distance_ratio_change = change;
-  }
-
-  return percentages;
+  return exportData;
 };
+
+// Type declaration for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      downloadFile: (url: string, filename: string, method?: string, body?: any, headers?: any) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      isElectron: boolean;
+      onDownloadComplete: (callback: (data: any) => void) => void;
+    };
+  }
+}
 
 /**
  * Trigger download of Excel file from backend
  */
 export const downloadExcelFile = async (exportData: ExportData): Promise<void> => {
   try {
-    const response = await fetch('http://localhost:8000/session/export-results', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(exportData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.statusText}`);
-    }
-
-    // Get the filename from the response headers
-    const contentDisposition = response.headers.get('Content-Disposition');
+    // Get the filename from the response headers first
     let filename = 'video_analysis_results.xlsx';
     
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-      if (filenameMatch) {
-        filename = filenameMatch[1];
+    // Check if we're running in Electron
+    if (window.electronAPI?.isElectron) {
+      console.log('Using Electron download API');
+      
+      // Use Electron's secure download API with POST data
+      const result = await window.electronAPI.downloadFile(
+        'http://localhost:8000/session/export-results',
+        filename,
+        'POST',
+        exportData
+      );
+      
+      if (result.success) {
+        console.log('File downloaded successfully to:', result.filePath);
+      } else {
+        if (result.error === 'Download cancelled by user') {
+          console.log('Download was cancelled by user');
+          return; // Don't throw error for user cancellation
+        } else {
+          throw new Error(`Electron download failed: ${result.error}`);
+        }
       }
-    }
+    } else {
+      console.log('Using browser download API');
+      
+      // Fallback to browser download for web version
+      const response = await fetch('http://localhost:8000/session/export-results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData)
+      });
 
-    // Convert response to blob
-    const blob = await response.blob();
-    
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    
-    // Trigger download
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('Content-Disposition');
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Convert response to blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }
     
   } catch (error) {
     console.error('Export failed:', error);
     throw error;
   }
-};
-
-/**
- * Prepare frames data for export with calculated percentages and thumbnail URLs
- */
-export const prepareFramesForExport = (
-  savedFrames: any[],
-  baselineFrameId?: string
-): FrameExportData[] => {
-  const baselineFrame = savedFrames.find(frame => 
-    frame.id === baselineFrameId || frame.isBaseline
-  );
-
-  return savedFrames.map(frame => ({
-    frame_id: frame.id,
-    frame_idx: frame.frameIdx || 0,
-    timestamp: frame.timestamp || 0,
-    custom_name: frame.customName || frame.name || `Frame ${frame.frameIdx || 0}`,
-    measurements: frame.measurements || {},
-    calculated_percentages: calculatePercentageChanges(frame, baselineFrame),
-    is_baseline: frame.id === baselineFrameId || frame.isBaseline,
-    thumbnail_url: frame.thumbnailUrl // Include thumbnail URL for backend access
-  }));
 };

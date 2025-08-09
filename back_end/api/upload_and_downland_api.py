@@ -38,16 +38,17 @@ async def upload_and_download(file: UploadFile = File(...)):
         with open(file_path, "wb") as f:
             f.write(await file.read())
 
-        basename, vis_df, df = process_file(file_path)
-        export_api.last_processed_result = (basename, df, vis_df)
+        basename, vis_df, df, breaths = process_file(file_path)
+        export_api.last_processed_result = (basename, vis_df, df)
         records = vis_df.to_dict(orient="records")
 
         key_fields = [
-            "breath_index", "segment", "R5-19", "R5", "R19", "X5",
-            "INSP_Volume", "EXP_Volume", 
-            "inspiration_start", "inspiration_end", 
-            "expiration_start", "expiration_end"
+            "BREATH_INDEX", "SEGMENT", "R5-19", "R5", "R19", "X5",
+            "INSP_VOLUME", "EXP_VOLUME",
+            "INSPIRATION_START", "INSPIRATION_END",
+            "EXPIRATION_START", "EXPIRATION_END"
         ]
+
         cleaned_records = clean_records(records, key_fields)
 
         return JSONResponse(content={

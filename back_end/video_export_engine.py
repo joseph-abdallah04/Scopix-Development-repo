@@ -7,10 +7,9 @@ import os
 import logging
 import tempfile
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 
 logger = logging.getLogger(__name__)
-
 
 class VideoExportEngine:
     """
@@ -21,15 +20,15 @@ class VideoExportEngine:
         self.workbook = None
         self.worksheet = None
         self.session_manager = session_manager
-        self.temp_files = []  # Track temporary files for cleanup
-        
+        self.temp_files = []  # Track temp files for cleanup
+
     def create_excel_export(self, frames_data: List[Dict], baseline_frame_id: str = None, 
                            export_metadata: Dict = None) -> io.BytesIO:
         """
         Create Excel file with analysis results
         
         Args:
-            frames_data: List of frame data with pre-calculated percentages
+            frames_data: List of frame data with measurements, formulas, and baseline comparisons
             baseline_frame_id: ID of the baseline frame
             export_metadata: Additional export information
             
@@ -75,26 +74,26 @@ class VideoExportEngine:
     
     def _cleanup_temp_files(self):
         """Clean up all temporary files created during export"""
-        for temp_file_path in self.temp_files:
+        for temp_file in self.temp_files:
             try:
-                if os.path.exists(temp_file_path):
-                    os.unlink(temp_file_path)
-                    logger.debug(f"Cleaned up temporary file: {temp_file_path}")
-            except Exception as cleanup_error:
-                logger.warning(f"Failed to cleanup temp file {temp_file_path}: {cleanup_error}")
+                if os.path.exists(temp_file):
+                    os.unlink(temp_file)
+            except Exception as e:
+                logger.warning(f"Failed to clean up temp file {temp_file}: {e}")
         self.temp_files.clear()
-    
+
     def _setup_styles(self):
-        """Define styles used throughout the document"""
+        """Set up Excel styles"""
         self.styles = {
             'main_header': {
-                'font': Font(bold=True, size=18, color="FFFFFF"),
-                'fill': PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid"),
-                'alignment': Alignment(horizontal='center', vertical='center')
+                'font': Font(bold=True, size=16),
+                'fill': PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid"),
+                'alignment': Alignment(horizontal='center', vertical='center'),
+                'border': self._create_border()
             },
             'section_header': {
-                'font': Font(bold=True, size=14, color="FFFFFF"),
-                'fill': PatternFill(start_color="366092", end_color="366092", fill_type="solid"),
+                'font': Font(bold=True, size=14),
+                'fill': PatternFill(start_color="8EA9DB", end_color="8EA9DB", fill_type="solid"),
                 'alignment': Alignment(horizontal='center', vertical='center'),
                 'border': self._create_border()
             },
@@ -148,7 +147,7 @@ class VideoExportEngine:
             baseline_name = baseline_frame.get("custom_name", f"Frame {baseline_frame.get('frame_idx')}")
             self.worksheet[f'B{current_row}'].value = baseline_name
         
-        return current_row + 2
+        return current_row + 3
     
     def _add_frame_section(self, frame_data: Dict, current_row: int) -> int:
         """Add individual frame section with data table"""
@@ -168,16 +167,16 @@ class VideoExportEngine:
         self.worksheet[f'D{current_row}'].value = frame_data.get('frame_idx', 'N/A')
         current_row += 1
         
-        # Add thumbnail if available - FIXED VERSION
+        # Add thumbnail if available
         current_row = self._add_frame_thumbnail(frame_data, current_row)
         
-        # Add measurements table
+        # Add measurements and formulas table
         current_row = self._add_measurements_table(frame_data, current_row)
         
         return current_row + 2  # Space between frames
     
     def _add_frame_thumbnail(self, frame_data: Dict, current_row: int) -> int:
-        """Add frame thumbnail if available - FIXED to delay cleanup"""
+        """Add frame thumbnail if available"""
         try:
             frame_id = frame_data.get('frame_id')
             
@@ -185,13 +184,13 @@ class VideoExportEngine:
                 logger.info(f"Attempting to add thumbnail for frame {frame_id}")
                 
                 try:
-                    # Get thumbnail bytes directly from session manager instead of HTTP request
+                    # Get thumbnail bytes directly from session manager
                     thumbnail_bytes = self.session_manager.get_frame_thumbnail(frame_id)
                     
                     if thumbnail_bytes:
                         logger.info(f"Successfully got thumbnail for frame {frame_id} ({len(thumbnail_bytes)} bytes)")
                         
-                        # Save thumbnail to temporary file - DON'T DELETE YET
+                        # Save thumbnail to temporary file
                         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
                             temp_file.write(thumbnail_bytes)
                             temp_thumbnail_path = temp_file.name
@@ -199,39 +198,19 @@ class VideoExportEngine:
                         # Add to cleanup list for later
                         self.temp_files.append(temp_thumbnail_path)
                         
-                        # Verify the file was created
-                        if os.path.exists(temp_thumbnail_path):
-                            logger.debug(f"Temporary thumbnail file created: {temp_thumbnail_path}")
-                            
-                            # Add image to Excel
-                            img = ExcelImage(temp_thumbnail_path)
-                            img.width = 200
-                            img.height = 150
-                            self.worksheet.add_image(img, f'A{current_row}')
-                            
-                            logger.info(f"Successfully added thumbnail image to Excel at row {current_row}")
-                            
-                            # DON'T DELETE THE FILE HERE - will be cleaned up after Excel save
-                            
-                            # Adjust row heights for image
-                            for row in range(current_row, current_row + 8):
-                                self.worksheet.row_dimensions[row].height = 20
-                            current_row += 8
-                        else:
-                            logger.error(f"Temporary file was not created: {temp_thumbnail_path}")
-                            current_row += 2
-                    else:
-                        logger.warning(f"No thumbnail data found for frame {frame_id}")
-                        current_row += 2
+                        # Insert image into Excel
+                        img = ExcelImage(temp_thumbnail_path)
+                        img.width = 150
+                        img.height = 100
+                        
+                        # Place image starting from current row
+                        self.worksheet.add_image(img, f'F{current_row}')
+                        current_row += 8  # Give space for image
                         
                 except Exception as e:
                     logger.warning(f"Failed to get thumbnail for frame {frame_id}: {e}")
                     current_row += 2
             else:
-                if not frame_id:
-                    logger.warning("No frame_id provided for thumbnail")
-                if not self.session_manager:
-                    logger.warning("No session manager provided for thumbnail access")
                 current_row += 2
                 
         except Exception as e:
@@ -241,158 +220,211 @@ class VideoExportEngine:
         return current_row
     
     def _add_measurements_table(self, frame_data: Dict, current_row: int) -> int:
-        """Add measurements data table"""
+        """Add comprehensive measurements and formulas table"""
         # Table headers
-        headers = ['Measurement Type', 'Value', 'Unit', 'Percentage Change/Closure']
+        headers = ['Measurement/Formula', 'Value', 'Unit', '% of Baseline', '% Change from Baseline']
         for col, header in enumerate(headers, 1):
             cell = self.worksheet.cell(row=current_row, column=col)
             cell.value = header
             self._apply_style(cell, 'sub_header')
         current_row += 1
         
-        # Add measurements using pre-calculated percentages
         measurements = frame_data.get('measurements', {})
-        calculated_percentages = frame_data.get('calculated_percentages', {})
+        formulas = frame_data.get('formulas', {})
+        baseline_comparisons = frame_data.get('baseline_comparisons', {})
+        is_baseline = frame_data.get('is_baseline', False)
+        
+        # Raw Measurements Section
+        current_row = self._add_section_header(current_row, "Raw Measurements")
         
         # Angle measurements
-        if measurements.get('glottic_angle') is not None:
-            percentage_text = self._format_percentage_value(
-                calculated_percentages.get('glottic_angle_closure'),
-                frame_data.get('is_baseline', False)
-            )
-            current_row = self._add_measurement_row(
-                current_row, 'Glottic Angle', measurements['glottic_angle'], '°', percentage_text
-            )
-        
-        if measurements.get('supraglottic_angle') is not None:
-            percentage_text = self._format_percentage_value(
-                calculated_percentages.get('supraglottic_angle_closure'),
-                frame_data.get('is_baseline', False)
-            )
-            current_row = self._add_measurement_row(
-                current_row, 'Supraglottic Angle', measurements['supraglottic_angle'], '°', percentage_text
-            )
+        for angle_key, label in [('angle_a', 'Angle A'), ('angle_b', 'Angle B')]:
+            if measurements.get(angle_key) is not None:
+                current_row = self._add_measurement_row(
+                    current_row, label, measurements[angle_key], '°', 
+                    baseline_comparisons.get(angle_key), is_baseline
+                )
         
         # Area measurements
-        if measurements.get('glottic_area') is not None:
-            percentage_text = self._format_percentage_value(
-                calculated_percentages.get('glottic_area_closure'),
-                frame_data.get('is_baseline', False)
-            )
+        for area_key, label in [
+            ('area_a', 'Area A'), ('area_b', 'Area B'),
+            ('area_av', 'Area AV'), ('area_bv', 'Area BV')
+        ]:
+            if measurements.get(area_key) is not None:
+                current_row = self._add_measurement_row(
+                    current_row, label, measurements[area_key], 'px²',
+                    baseline_comparisons.get(area_key), is_baseline
+                )
+        
+        # Distance measurements
+        for distance_key, label in [
+            ('distance_a', 'Distance A'), ('distance_c', 'Distance C'),
+            ('distance_g', 'Distance G'), ('distance_h', 'Distance H')
+        ]:
+            if measurements.get(distance_key) is not None:
+                current_row = self._add_measurement_row(
+                    current_row, label, measurements[distance_key], 'px',
+                    baseline_comparisons.get(distance_key), is_baseline
+                )
+        
+        # Calculated Formulas Section
+        current_row = self._add_section_header(current_row, "Calculated Formulas")
+        
+        # P-Factor and C-Factor
+        if formulas.get('p_factor') is not None:
             current_row = self._add_measurement_row(
-                current_row, 'Glottic Area', measurements['glottic_area'], 'px²', percentage_text
-            )
-            
-        if measurements.get('supraglottic_area') is not None:
-            percentage_text = self._format_percentage_value(
-                calculated_percentages.get('supraglottic_area_closure'),
-                frame_data.get('is_baseline', False)
-            )
-            current_row = self._add_measurement_row(
-                current_row, 'Supraglottic Area', measurements['supraglottic_area'], 'px²', percentage_text
+                current_row, 'P-Factor (Area A / Distance A)', formulas['p_factor'], '',
+                baseline_comparisons.get('p_factor'), is_baseline
             )
         
-        # Distance ratio measurements
-        distance_ratio = measurements.get('distance_ratio')
-        if distance_ratio:
-            percentage_text = self._format_percentage_value(
-                calculated_percentages.get('distance_ratio_change'),
-                frame_data.get('is_baseline', False)
-            )
+        if formulas.get('c_factor') is not None:
             current_row = self._add_measurement_row(
-                current_row, 'Distance Ratio (X/Y)', distance_ratio.get('ratio_percentage', 0), '%', percentage_text
-            )
-            
-            # Add component distances
-            current_row = self._add_measurement_row(
-                current_row, 'Horizontal Distance', distance_ratio.get('horizontal_distance', 0), 'px', 'N/A'
-            )
-            current_row = self._add_measurement_row(
-                current_row, 'Vertical Distance', distance_ratio.get('vertical_distance', 0), 'px', 'N/A'
+                current_row, 'C-Factor (Area BV / (Area AV + Area BV))', formulas['c_factor'], '',
+                baseline_comparisons.get('c_factor'), is_baseline
             )
         
-        return current_row
+        # Distance Ratios
+        for ratio_key, label in [
+            ('distance_ratio_1', 'Distance Ratio 1 (Distance G / Distance A)'),
+            ('distance_ratio_2', 'Distance Ratio 2 (Distance G / Distance C)'),
+            ('distance_ratio_3', 'Distance Ratio 3 (Distance H / Distance A)'),
+            ('distance_ratio_4', 'Distance Ratio 4 (Distance H / Distance C)')
+        ]:
+            if formulas.get(ratio_key) is not None:
+                current_row = self._add_measurement_row(
+                    current_row, label, formulas[ratio_key], '',
+                    baseline_comparisons.get(ratio_key), is_baseline
+                )
+        
+        # Supraglottic Area Ratios (NEW)
+        if formulas.get('supraglottic_area_ratio_1') is not None:
+            current_row = self._add_measurement_row(
+                current_row, 'Supraglottic Area Ratio 1 (Area B / Distance A)', 
+                formulas['supraglottic_area_ratio_1'], '',
+                baseline_comparisons.get('supraglottic_area_ratio_1'), is_baseline
+            )
+        
+        if formulas.get('supraglottic_area_ratio_2') is not None:
+            current_row = self._add_measurement_row(
+                current_row, 'Supraglottic Area Ratio 2 (Area B / (Distance A + Distance C))', 
+                formulas['supraglottic_area_ratio_2'], '',
+                baseline_comparisons.get('supraglottic_area_ratio_2'), is_baseline
+            )
+        
+        return current_row + 1
     
-    def _add_measurement_row(self, row: int, measurement_type: str, value: float, 
-                           unit: str, percentage_change: str) -> int:
-        """Add a single measurement row"""
-        self.worksheet.cell(row=row, column=1).value = measurement_type
-        self.worksheet.cell(row=row, column=2).value = f"{value:.2f}"
-        self.worksheet.cell(row=row, column=3).value = unit
-        self.worksheet.cell(row=row, column=4).value = percentage_change
-        
-        # Apply data cell styling
-        for col in range(1, 5):
-            self._apply_style(self.worksheet.cell(row=row, column=col), 'data_cell')
-        
-        return row + 1
+    def _add_section_header(self, current_row: int, section_name: str) -> int:
+        """Add a section header row"""
+        self.worksheet.merge_cells(f'A{current_row}:E{current_row}')
+        cell = self.worksheet[f'A{current_row}']
+        cell.value = section_name
+        cell.font = Font(bold=True, size=12)
+        cell.fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+        cell.alignment = Alignment(horizontal='left', vertical='center')
+        cell.border = self._create_border()
+        return current_row + 1
     
-    def _format_percentage_value(self, value: Optional[float], is_baseline: bool = False) -> str:
-        """Format percentage value for Excel output"""
-        if value is None:
-            return 'N/A'
+    def _add_measurement_row(self, current_row: int, name: str, value, unit: str,
+                           baseline_comparison: Dict = None, is_baseline: bool = False) -> int:
+        """Add a measurement row to the table"""
+        # Measurement name
+        cell = self.worksheet.cell(row=current_row, column=1)
+        cell.value = name
+        self._apply_style(cell, 'data_cell')
+        
+        # Value - FORCE CONVERSION TO NUMBER
+        cell = self.worksheet.cell(row=current_row, column=2)
+        if value is not None:
+            try:
+                # Convert to float if it's a string, then round
+                numeric_value = float(value) if isinstance(value, str) else value
+                cell.value = numeric_value  # Store as actual number
+                cell.number_format = '0.000'  # Format display to 3 decimal places
+            except (ValueError, TypeError):
+                cell.value = "Invalid number"
+        else:
+            cell.value = "Not calculated"
+        self._apply_style(cell, 'data_cell')
+        
+        # Unit
+        cell = self.worksheet.cell(row=current_row, column=3)
+        cell.value = unit
+        self._apply_style(cell, 'data_cell')
+        
+        # Baseline comparisons
         if is_baseline:
-            return '0.0%'
-        return f"{'+' if value > 0 else ''}{value:.1f}%"
+            # For baseline frame - show N/A instead of 100.0% and 0.0%
+            cell = self.worksheet.cell(row=current_row, column=4)
+            cell.value = "N/A"
+            self._apply_style(cell, 'data_cell')
+            
+            cell = self.worksheet.cell(row=current_row, column=5)
+            cell.value = "N/A"
+            self._apply_style(cell, 'data_cell')
+        elif baseline_comparison:
+            # For non-baseline frames with baseline comparisons - FORCE NUMBER CONVERSION
+            cell = self.worksheet.cell(row=current_row, column=4)
+            try:
+                percent_value = float(baseline_comparison['percentOfBaseline']) if isinstance(baseline_comparison['percentOfBaseline'], str) else baseline_comparison['percentOfBaseline']
+                cell.value = percent_value / 100  # Store as decimal for percentage formatting
+                cell.number_format = '0.0%'  # Excel percentage format
+            except (ValueError, TypeError, KeyError):
+                cell.value = "-"
+            self._apply_style(cell, 'data_cell')
+            
+            cell = self.worksheet.cell(row=current_row, column=5)
+            try:
+                change_value = float(baseline_comparison['percentChangeFromBaseline']) if isinstance(baseline_comparison['percentChangeFromBaseline'], str) else baseline_comparison['percentChangeFromBaseline']
+                cell.value = change_value / 100  # Store as decimal for percentage formatting
+                cell.number_format = '+0.0%;-0.0%'  # Excel percentage format with + and - signs
+            except (ValueError, TypeError, KeyError):
+                cell.value = "-"
+            self._apply_style(cell, 'data_cell')
+        else:
+            # No baseline set
+            cell = self.worksheet.cell(row=current_row, column=4)
+            cell.value = "-"
+            self._apply_style(cell, 'data_cell')
+            
+            cell = self.worksheet.cell(row=current_row, column=5)
+            cell.value = "-"
+            self._apply_style(cell, 'data_cell')
+        
+        return current_row + 1
     
     def _apply_style(self, cell, style_name: str):
-        """Apply predefined style to cell"""
-        style = self.styles.get(style_name, {})
-        if 'font' in style:
-            cell.font = style['font']
-        if 'fill' in style:
-            cell.fill = style['fill']
-        if 'alignment' in style:
-            cell.alignment = style['alignment']
-        if 'border' in style:
-            cell.border = style['border']
+        """Apply style to cell"""
+        if style_name in self.styles:
+            style = self.styles[style_name]
+            if 'font' in style:
+                cell.font = style['font']
+            if 'fill' in style:
+                cell.fill = style['fill']
+            if 'alignment' in style:
+                cell.alignment = style['alignment']
+            if 'border' in style:
+                cell.border = style['border']
     
     def _apply_final_formatting(self):
         """Apply final formatting to the worksheet"""
-        # Auto-adjust column widths using column indices
-        from openpyxl.utils import get_column_letter
+        # Set specific column widths to ensure proper text fit
+        column_widths = {
+            'A': 45,  # Measurement/Formula names (longest: "Supraglottic Area Ratio 2...")
+            'B': 15,  # Value column
+            'C': 8,   # Unit column
+            'D': 18,  # % of Baseline column
+            'E': 25   # % Change from Baseline column
+        }
         
-        # Get the maximum column index
-        max_column = self.worksheet.max_column
-        
-        for col_idx in range(1, max_column + 1):
-            max_length = 0
-            column_letter = get_column_letter(col_idx)
-            
-            # Iterate through all rows for this column
-            for row_idx in range(1, self.worksheet.max_row + 1):
-                cell = self.worksheet.cell(row=row_idx, column=col_idx)
-                
-                # Only process non-merged cells
-                if not isinstance(cell, MergedCell):
-                    try:
-                        if cell.value and len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-        
-            # Apply the column width
-            if max_length > 0:
-                adjusted_width = min(max_length + 2, 50)
-                self.worksheet.column_dimensions[column_letter].width = adjusted_width
-            else:
-                # Set a minimum width for empty columns
-                self.worksheet.column_dimensions[column_letter].width = 12
+        # Apply the specific widths
+        for col_letter, width in column_widths.items():
+            self.worksheet.column_dimensions[col_letter].width = width
 
-
+# Convenience function
 def create_excel_export(frames_data: List[Dict], baseline_frame_id: str = None, 
                        export_metadata: Dict = None, session_manager=None) -> io.BytesIO:
     """
     Convenience function to create Excel export
-    
-    Args:
-        frames_data: List of frame data with pre-calculated percentages
-        baseline_frame_id: ID of the baseline frame
-        export_metadata: Additional export information
-        session_manager: Session manager instance for direct thumbnail access
-        
-    Returns:
-        io.BytesIO: Excel file as bytes buffer
     """
     engine = VideoExportEngine(session_manager=session_manager)
     return engine.create_excel_export(frames_data, baseline_frame_id, export_metadata)

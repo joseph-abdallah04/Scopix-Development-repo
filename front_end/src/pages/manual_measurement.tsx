@@ -6,52 +6,23 @@ import MeasurementToolsPanel from '../components/MeasurementToolsPanel';
 import MeasurementLayout from '../components/MeasurementLayout';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import { useUndoRedo } from '../hooks/useUndoRedo';
+import { useTheme } from '../contexts/theme-context';
+import type { Measurements } from '../types/measurements';
 
-interface AngleMeasurement {
-  angle: number;
-  points: number[][];
-}
 
-interface AreaMeasurement {
-  area_pixels: number;
-  perimeter_pixels: number;
-  method: string;
-  point_count: number;
-  area_mm2?: number;
-  perimeter_mm?: number;
-  centroid?: number[];
-  bbox?: number[];
-  eccentricity?: number;
-  solidity?: number;
-}
-
-interface DistanceMeasurement {
-  horizontal_distance: number;
-  vertical_distance: number;
-  ratio_percentage: number; // (x/y) * 100
-  horizontal_points: number[][];
-  vertical_points: number[][];
-}
-
-interface Measurements {
-  glottic?: AngleMeasurement;
-  supraglottic?: AngleMeasurement;
-  glottic_area?: AreaMeasurement;
-  supraglottic_area?: AreaMeasurement;
-  distance_ratio?: DistanceMeasurement; // Add the new measurement type
-}
 
 interface MeasurementState {
   measurements: Measurements;
   currentPoints: number[][];
-  // Add context for better undo/redo
+  // Add context for better undo/redo - update to use new naming convention
   activeToolType?: 'angle' | 'area' | 'distance';
-  activeToolSubtype?: 'glottic' | 'supraglottic' | 'glottic_area' | 'supraglottic_area' | 'distance_ratio';
+  activeToolSubtype?: 'angle_a' | 'angle_b' | 'area_a' | 'area_b' | 'area_av' | 'area_bv' | 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h';
 }
 
 function ManualMeasurement() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   
   const frameData = location.state?.frameData;
   const [frameImageUrl, setFrameImageUrl] = useState<string | null>(null);
@@ -59,10 +30,9 @@ function ManualMeasurement() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Simple state management - no memo, no complex optimization
-  const [selectedAngleType, setSelectedAngleType] = useState<'glottic' | 'supraglottic' | null>(null);
-  const [selectedAreaType, setSelectedAreaType] = useState<'glottic_area' | 'supraglottic_area' | null>(null);
-  const [selectedDistanceType, setSelectedDistanceType] = useState<'distance_ratio' | null>(null);
-  const [distanceMeasurementStep, setDistanceMeasurementStep] = useState<'horizontal' | 'vertical' | null>(null);
+  const [selectedAngleType, setSelectedAngleType] = useState<'angle_a' | 'angle_b' | null>(null);
+  const [selectedAreaType, setSelectedAreaType] = useState<'area_a' | 'area_b' | 'area_av' | 'area_bv' | null>(null);
+  const [selectedRawDistanceType, setSelectedRawDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
   // const [horizontalPoints, setHorizontalPoints] = useState<number[][]>([]);
 
   const initialState: MeasurementState = {
@@ -104,6 +74,70 @@ function ManualMeasurement() {
     redo();
   }, [redo, canRedo]);
 
+  // Add at the top, after other hooks
+  // const [selectedRawDistanceType, setSelectedRawDistanceType] = useState<'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null>(null);
+
+  // Add this function after your other measurement handlers
+  const handleRawDistanceToolSelect = (key: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null) => {
+    if (key === null) {
+      setSelectedRawDistanceType(null);
+      setSelectedAngleType(null);
+      setSelectedAreaType(null);
+      setMeasurementState({
+        ...measurementState,
+        currentPoints: [],
+        activeToolType: undefined,
+        activeToolSubtype: undefined,
+      });
+      return;
+    }
+    
+    setSelectedRawDistanceType(key);
+    setSelectedAngleType(null);
+    setSelectedAreaType(null);
+    setMeasurementState({
+      ...measurementState,
+      currentPoints: [],
+      activeToolType: 'distance',
+      activeToolSubtype: key,
+    });
+  };
+
+  // Add this function after your other measurement handlers
+  const handleCalculateRawDistance = async (
+    points: number[][],
+    key: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h'
+  ) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:8000/measure/distance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points }),
+      });
+      if (!response.ok) throw new Error('Failed to calculate distance');
+      const result = await response.json();
+      
+      console.log('📏 Distance calculation result:', result);
+      
+      setMeasurementState({
+        measurements: {
+          ...measurements,
+          [key]: result.distance,
+        },
+        currentPoints: [],
+        activeToolType: undefined,
+        activeToolSubtype: undefined,
+      });
+      setSelectedRawDistanceType(null);
+    } catch (error) {
+      console.error('❌ Error calculating distance:', error);
+      alert('Failed to calculate distance. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Add this useEffect to handle tool restoration automatically
   useEffect(() => {
     const { currentPoints, activeToolType, activeToolSubtype } = measurementState;
@@ -121,38 +155,26 @@ function ManualMeasurement() {
       if (activeToolType === 'angle') {
         // For angle tools: only reselect if we have less than 3 points
         if (currentPoints.length < 3) {
-          setSelectedAngleType(activeToolSubtype as 'glottic' | 'supraglottic');
+          setSelectedAngleType(activeToolSubtype as 'angle_a' | 'angle_b');
           setSelectedAreaType(null);
-          setSelectedDistanceType(null);
+          setSelectedRawDistanceType(null);
         } else {
           console.log('🔄 Not reselecting angle tool - 3 points already exist');
           setSelectedAngleType(null);
           setSelectedAreaType(null);
-          setSelectedDistanceType(null);
+          setSelectedRawDistanceType(null);
         }
       } else if (activeToolType === 'area') {
-        setSelectedAreaType(activeToolSubtype as 'glottic_area' | 'supraglottic_area');
+        setSelectedAreaType(activeToolSubtype as 'area_a' | 'area_b' | 'area_av' | 'area_bv');
         setSelectedAngleType(null);
-        setSelectedDistanceType(null);
+        setSelectedRawDistanceType(null);
       } else if (activeToolType === 'distance') {
-        // Distance tools - only reselect if we have less than 4 points (incomplete measurement)
-        if (currentPoints.length < 4) {
-          setSelectedDistanceType(activeToolSubtype as 'distance_ratio');
-          setSelectedAngleType(null);
-          setSelectedAreaType(null);
-          
-          // Update measurement step based on current points
-          if (currentPoints.length <= 2) {
-            setDistanceMeasurementStep('horizontal');
-          } else if (currentPoints.length <= 4) {
-            setDistanceMeasurementStep('vertical');
+        // Distance tools - only raw distance (2 points)
+        if (['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(activeToolSubtype as string)) {
+          // Only reselect if we have less than 2 points (incomplete measurement)
+          if (currentPoints.length < 2) {
+            setSelectedRawDistanceType(activeToolSubtype as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h');
           }
-        } else {
-          console.log('🔄 Not reselecting distance tool - 4 points already exist (measurement complete)');
-          setSelectedDistanceType(null);
-          setSelectedAngleType(null);
-          setSelectedAreaType(null);
-          setDistanceMeasurementStep(null);
         }
       }
     } else if (!currentPoints || currentPoints.length === 0) {
@@ -161,18 +183,50 @@ function ManualMeasurement() {
         console.log('🔄 Clearing tools - no points and no active context');
         setSelectedAngleType(null);
         setSelectedAreaType(null);
-        setSelectedDistanceType(null);
-        setDistanceMeasurementStep(null);
+        setSelectedRawDistanceType(null);
       }
     }
   }, [measurementState]); // React to any measurementState changes
 
+  // Add useEffect to sync tool selection states with measurementState after undo/redo
+  useEffect(() => {
+    // When measurementState changes due to undo/redo, sync the tool selection states
+    const { activeToolType, activeToolSubtype } = measurementState;
+    
+    console.log('🔄 Syncing tool states after state change:', { activeToolType, activeToolSubtype });
+    
+    if (!activeToolType || !activeToolSubtype) {
+      // If no active tool in the restored state, deselect all tools
+      setSelectedAngleType(null);
+      setSelectedAreaType(null);
+      setSelectedRawDistanceType(null);
+    } else {
+      // Sync tool selection based on the restored active tool
+      if (activeToolType === 'angle') {
+        setSelectedAngleType(activeToolSubtype as 'angle_a' | 'angle_b');
+        setSelectedAreaType(null);
+        setSelectedRawDistanceType(null);
+      } else if (activeToolType === 'area') {
+        setSelectedAngleType(null);
+        setSelectedAreaType(activeToolSubtype as 'area_a' | 'area_b' | 'area_av' | 'area_bv');
+        setSelectedRawDistanceType(null);
+      } else if (activeToolType === 'distance') {
+        setSelectedAngleType(null);
+        setSelectedAreaType(null);
+        
+        if (['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(activeToolSubtype as string)) {
+          setSelectedRawDistanceType(activeToolSubtype as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h');
+        }
+      }
+    }
+  }, [measurementState.activeToolType, measurementState.activeToolSubtype, measurementState.currentPoints.length]);
+
   // Handle angle type selection - SIMPLIFIED
-  const handleAngleTypeSelect = (type: 'glottic' | 'supraglottic' | null) => {
+  const handleAngleTypeSelect = (type: 'angle_a' | 'angle_b' | null) => {
     console.log('🎯 PARENT - Angle type selected:', type);
     setSelectedAngleType(type);
     setSelectedAreaType(null);
-    setSelectedDistanceType(null);
+    setSelectedRawDistanceType(null); // Add this line
     
     // Update state with tool context using set method
     setMeasurementState({
@@ -184,11 +238,11 @@ function ManualMeasurement() {
   };
 
   // Handle area type selection - SIMPLIFIED
-  const handleAreaTypeSelect = (type: 'glottic_area' | 'supraglottic_area' | null) => {
+  const handleAreaTypeSelect = (type: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null) => {
     console.log('🎯 PARENT - Area type selected:', type);
     setSelectedAreaType(type);
     setSelectedAngleType(null);
-    setSelectedDistanceType(null);
+    setSelectedRawDistanceType(null); // Add this line
     
     // Update state with tool context using set method
     setMeasurementState({
@@ -199,31 +253,7 @@ function ManualMeasurement() {
     });
   };
 
-  // Handle distance type selection
-  const handleDistanceTypeSelect = (type: 'distance_ratio' | null) => {
-    console.log('🎯 PARENT - Distance type selected:', type);
-    setSelectedDistanceType(type);
-    setSelectedAngleType(null);
-    setSelectedAreaType(null);
-    
-    if (type) {
-      setDistanceMeasurementStep('horizontal');
-      setMeasurementState({
-        ...measurementState,
-        currentPoints: [],
-        activeToolType: 'distance',
-        activeToolSubtype: type
-      });
-    } else {
-      setDistanceMeasurementStep(null);
-      setMeasurementState({
-        ...measurementState,
-        currentPoints: [],
-        activeToolType: undefined,
-        activeToolSubtype: undefined
-      });
-    }
-  };
+
 
   // Prevent context menu on right-click
   const handleContextMenu = (event: React.MouseEvent) => {
@@ -232,46 +262,74 @@ function ManualMeasurement() {
 
   // Updated click handler to handle distance measurements with persistent points
   const handleImageClick = async (event: React.MouseEvent<HTMLImageElement>) => {
-    console.log('🖱️ Image clicked!');
-    
     if (event.button !== 0) return;
-    
-    if (!selectedAngleType && !selectedAreaType && !selectedDistanceType) {
-      console.log('❌ No measurement type selected - returning early');
+
+    // Only allow clicks if a tool is selected
+    if (!selectedAngleType && !selectedAreaType && !selectedRawDistanceType) {
       return;
     }
 
     // Get click position
     const imgRect = event.currentTarget.getBoundingClientRect();
-    const clickX = event.clientX - imgRect.left;
-    const clickY = event.clientY - imgRect.top;
-    const x = clickX;
-    const y = clickY;
-    
-    // Bounds check
+    const x = event.clientX - imgRect.left;
+    const y = event.clientY - imgRect.top;
+
     if (x < 0 || x > imgRect.width || y < 0 || y > imgRect.height) {
-      console.log('❌ Click outside image bounds');
       return;
     }
-    
+
+    // --- RAW DISTANCE TOOL LOGIC ---
+    if (
+      selectedRawDistanceType &&
+      ['distance_a', 'distance_c', 'distance_g', 'distance_h'].includes(selectedRawDistanceType)
+    ) {
+      // **FIX: Prevent adding more than 2 points for distance measurements**
+      if (currentPoints.length >= 2) {
+        console.log('🚫 Distance measurement already has 2 points, cannot add more');
+        return;
+      }
+
+      // **FIX: For distance tools, if there are already 2 points and a measurement exists, prevent new points**
+      const key = selectedRawDistanceType as 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h';
+      if (currentPoints.length === 2 && measurements[key]) {
+        console.log('🚫 Distance measurement already completed, cannot add more points');
+        return;
+      }
+
+      const newPoints = [...currentPoints, [x, y]];
+      setMeasurementState({
+        ...measurementState,
+        currentPoints: newPoints,
+        activeToolType: 'distance',
+        activeToolSubtype: key,
+      });
+
+      // When two points are selected, calculate the distance
+      if (newPoints.length === 2) {
+        await handleCalculateRawDistance(newPoints, key);
+        // Don't call setMeasurementState again here - handleCalculateRawDistance already does it
+      }
+      return;
+    }
+
     const newPoints = [...currentPoints, [x, y]];
     console.log('📍 New points:', newPoints);
     
     // Handle distance measurements with persistent points
-    if (selectedDistanceType) {
+    if (selectedRawDistanceType) {
       // Update points immediately - all points stay visible
       setMeasurementState({
         ...measurementState,
         currentPoints: newPoints,
         activeToolType: 'distance',
-        activeToolSubtype: selectedDistanceType
+        activeToolSubtype: selectedRawDistanceType
       });
       
       // Update the measurement step based on point count
       if (newPoints.length <= 2) {
-        setDistanceMeasurementStep('horizontal');
+        // setDistanceMeasurementStep('horizontal'); // REMOVED
       } else if (newPoints.length <= 4) {
-        setDistanceMeasurementStep('vertical');
+        // setDistanceMeasurementStep('vertical'); // REMOVED
       }
       
       // Auto-calculate when we have all 4 points
@@ -284,13 +342,28 @@ function ManualMeasurement() {
       return;
     }
 
+    // **FIX: Prevent adding more than 3 points for angle measurements**
+    if (selectedAngleType && currentPoints.length >= 3) {
+      console.log('🚫 Angle measurement already has 3 points, cannot add more');
+      return;
+    }
+
+    // **FIX: For angle tools, if there are already 3 points and a measurement exists, prevent new points**
+    if (selectedAngleType && currentPoints.length === 3 && measurements[selectedAngleType]) {
+      console.log('🚫 Angle measurement already completed, cannot add more points');
+      return;
+    }
+
     // Update current points WITH tool context preservation using the `set` method
     const newState = {
       ...measurementState,
       currentPoints: newPoints,
-      // Preserve tool context for undo/redo
-      activeToolType: selectedAngleType ? 'angle' as const : 'area' as const,
-      activeToolSubtype: (selectedAngleType || selectedAreaType) as any
+      // Preserve tool context for undo/redo - fix to handle all tool types
+      activeToolType: selectedAngleType ? 'angle' as const : 
+                       selectedAreaType ? 'area' as const : 
+                       selectedRawDistanceType ? 'distance' as const : 
+                       undefined,
+      activeToolSubtype: (selectedAngleType || selectedAreaType || selectedRawDistanceType) as any
     };
     
     console.log('💾 Saving state for undo:', newState);
@@ -318,14 +391,11 @@ function ManualMeasurement() {
         const result = await response.json();
         console.log('📐 Angle calculation result:', result);
         
-        // Update measurements using set method
+        // Update measurements using set method - store just the angle value
         setMeasurementState({
           measurements: {
             ...measurements,
-            [selectedAngleType]: {
-              angle: result.angle,
-              points: newPoints
-            }
+            [selectedAngleType]: result.angle  // Store just the angle number, not the full object
           },
           currentPoints: [],
           // Clear tool context when measurement is complete
@@ -372,11 +442,11 @@ function ManualMeasurement() {
       const result = await response.json();
       console.log('📐 Area calculation result:', result);
       
-      // Update measurements
+      // Update measurements - store just the area_pixels value, not the full object
       setMeasurementState({
         measurements: {
           ...measurements,
-          [selectedAreaType]: result
+          [selectedAreaType]: result.area_pixels  // Store just the area_pixels number, not the full result object
         },
         currentPoints: [],
         // Clear tool context when measurement is complete
@@ -421,16 +491,16 @@ function ManualMeasurement() {
       setMeasurementState({
         measurements: {
           ...measurements,
-          distance_ratio: result
+          // Remove distance_ratio - it's not part of the new measurement system
         },
         currentPoints: [],
         activeToolType: undefined,
         activeToolSubtype: undefined
       });
       
-      // Clear tool selection and reset state
-      setSelectedDistanceType(null);
-      setDistanceMeasurementStep(null);
+      // Instead, we should handle the distance_ratio differently or remove this functionality
+      // Since this appears to be legacy code for the 4-point distance ratio tool
+      console.log('Distance ratio calculated:', result);
       
     } catch (error) {
       console.error('❌ Error calculating distance ratio:', error);
@@ -459,17 +529,34 @@ function ManualMeasurement() {
 
   // ✅ UPDATED: Enhanced saveMeasurements to handle canvas frames
   const saveMeasurements = async () => {
+    // Build measurements object with all 10 keys
+    const measurementsToSave = {
+      angle_a: measurements.angle_a || null,
+      angle_b: measurements.angle_b || null,
+      distance_a: measurements.distance_a || null,
+      distance_c: measurements.distance_c || null,
+      distance_g: measurements.distance_g || null,
+      distance_h: measurements.distance_h || null,
+      area_a: measurements.area_a || null,
+      area_b: measurements.area_b || null,
+      area_av: measurements.area_av || null,
+      area_bv: measurements.area_bv || null,
+    };
+
+    // Fix the validation check (around lines 567-573)
     // Validation check
-    if (!measurements.glottic && !measurements.supraglottic && 
-        !measurements.glottic_area && !measurements.supraglottic_area &&
-        !measurements.distance_ratio) {
-      alert('Please measure at least one angle, area, or distance ratio before saving.');
+    if (!measurementsToSave.angle_a && !measurementsToSave.angle_b && 
+        !measurementsToSave.area_a && !measurementsToSave.area_b &&
+        !measurementsToSave.area_av && !measurementsToSave.area_bv &&  // ADD THESE TWO
+        !measurementsToSave.distance_a && !measurementsToSave.distance_c &&
+        !measurementsToSave.distance_g && !measurementsToSave.distance_h) {
+      alert('Please measure at least one angle, area, or distance before saving.');
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('💾 Saving measurements:', measurements);
+      console.log('💾 Saving measurements:', measurementsToSave);
       console.log('📄 Frame data:', frameData);
       
       // Check if this was a canvas-captured frame
@@ -482,7 +569,7 @@ function ManualMeasurement() {
         const formData = new FormData();
         formData.append('timestamp', frameData.timestamp.toString());
         formData.append('frame_idx', frameData.frameIdx.toString());
-        formData.append('measurements', JSON.stringify(measurements));
+        formData.append('measurements', JSON.stringify(measurementsToSave));
         formData.append('override_existing', (frameData.overrideExisting || false).toString());
         formData.append('canvas_image', frameData.imageBlob, `frame_${frameData.frameIdx}.png`);
         
@@ -507,25 +594,17 @@ function ManualMeasurement() {
         console.log('📡 Using traditional backend frame endpoint');
         
         // Use traditional JSON endpoint for backend-captured frames
-        const response = await fetch('http://localhost:8000/session/save-measured-frame', {
+        await fetch('http://localhost:8000/session/save-measured-frame', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             timestamp: frameData.timestamp,
             frame_idx: frameData.frameIdx,
-            measurements: measurements,
+            measurements: measurementsToSave,
+            custom_name: frameData.customName || undefined,
             override_existing: frameData.overrideExisting || false
           })
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to save measured frame');
-        }
-
-        const result = await response.json();
-        console.log('✅ Frame saved successfully:', result);
       }
       
       // Navigate back to video analysis
@@ -549,7 +628,7 @@ function ManualMeasurement() {
     resetMeasurementState(initialState);
     setSelectedAngleType(null);
     setSelectedAreaType(null);
-    setSelectedDistanceType(null);
+    setSelectedRawDistanceType(null);
   };
 
   useEffect(() => {
@@ -592,7 +671,7 @@ function ManualMeasurement() {
     if (selectedAreaType) {
       return `${selectedAreaType.replace('_', ' ')}: ${currentPoints.length} points${currentPoints.length >= 3 ? ' (press Enter to finish)' : ''}`;
     }
-    if (selectedDistanceType) {
+    if (selectedRawDistanceType) {
       if (currentPoints.length === 0) {
         return `Distance Ratio - Click first horizontal point`;
       } else if (currentPoints.length === 1) {
@@ -603,17 +682,26 @@ function ManualMeasurement() {
         return `Distance Ratio - Click second vertical point`;
       }
     }
+    if (selectedRawDistanceType) {
+      return `${selectedRawDistanceType}: ${currentPoints.length}/2 points`;
+    }
     return '';
   };
 
   if (!frameData) {
     return (
-      <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-xl mb-6">No frame data available</p>
           <button 
             onClick={handleBack} 
-            className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2"
+            className={`border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                : 'bg-gray-300 hover:bg-gray-400 text-gray-900'
+            }`}
           >
             <GoArrowLeft />
             Back to Video Analysis
@@ -631,176 +719,218 @@ function ManualMeasurement() {
         onBack={handleBack}
       />
 
-      <MeasurementLayout>
-        <div className="flex-1 flex items-center justify-center bg-zinc-900 rounded-xl border border-gray-700 p-4 overflow-hidden relative">
-          {frameImageUrl ? (
-            <div 
-              className="relative overflow-hidden w-full h-full flex items-center justify-center"
-              onContextMenu={handleContextMenu}
-              style={{
-                cursor: (selectedAngleType || selectedAreaType || selectedDistanceType) ? 'crosshair' : 'default'
-              }}
-            >
-              <div className="relative">
-                <img 
-                  src={frameImageUrl} 
-                  alt={`Frame ${frameData.frameIdx} at ${frameData.timestamp.toFixed(3)}s`}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                  onClick={handleImageClick}
-                  onDragStart={(e) => e.preventDefault()}
-                  onContextMenu={handleContextMenu}
-                  draggable={false}
-                />
-                
-                {/* Points overlay */}
-                {currentPoints.map((point, index) => {
-                  let pointColor = 'bg-red-500'; // Default for angles
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
+        <MeasurementLayout>
+          <div className={`flex-1 flex items-center justify-center rounded-xl border p-4 overflow-hidden relative transition-colors duration-300 ${
+            isDarkMode 
+              ? 'bg-zinc-900 border-gray-700' 
+              : 'bg-gray-300 border-gray-500'
+          }`}>
+            {frameImageUrl ? (
+              <div 
+                className="relative overflow-hidden w-full h-full flex items-center justify-center"
+                onContextMenu={handleContextMenu}
+                style={{
+                  cursor: (selectedAngleType || selectedAreaType || selectedRawDistanceType) ? 'crosshair' : 'default'
+                }}
+              >
+                <div className="relative">
+                  <img 
+                    src={frameImageUrl} 
+                    alt={`Frame ${frameData.frameIdx} at ${frameData.timestamp.toFixed(3)}s`}
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                    onClick={handleImageClick}
+                    onDragStart={(e) => e.preventDefault()}
+                    onContextMenu={handleContextMenu}
+                    draggable={false}
+                  />
                   
-                  if (selectedAreaType || measurementState.activeToolType === 'area') {
-                    pointColor = 'bg-green-500';
-                  } else if (selectedDistanceType || measurementState.activeToolType === 'distance') {
-                    // First 2 points are horizontal (blue), last 2 are vertical (red)
-                    pointColor = index < 2 ? 'bg-blue-500' : 'bg-red-500';
-                  }
+                  {/* Points overlay */}
+                  {currentPoints.map((point, index) => {
+                    let pointColor = 'bg-red-500'; // Default for angles
+                    
+                    if (selectedAreaType || measurementState.activeToolType === 'area') {
+                      pointColor = 'bg-green-500';
+                    } else if (selectedRawDistanceType || measurementState.activeToolType === 'distance') {
+                      // First 2 points are horizontal (blue), last 2 are vertical (red)
+                      pointColor = index < 2 ? 'bg-blue-500' : 'bg-red-500';
+                    }
+                    
+                    return (
+                      <div
+                        key={index}
+                        className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 pointer-events-none border border-white shadow-lg z-10 ${pointColor}`}
+                        style={{
+                          left: point[0],
+                          top: point[1],
+                          opacity: 0.7,
+                        }}
+                      />
+                    );
+                  })}
                   
-                  return (
-                    <div
-                      key={index}
-                      className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 pointer-events-none border border-white shadow-lg z-10 ${pointColor}`}
-                      style={{
-                        left: point[0],
-                        top: point[1],
-                        opacity: 0.7,
-                      }}
-                    />
-                  );
-                })}
-                
-                {/* Lines for area measurement */}
-                {selectedAreaType && currentPoints.length > 1 && (
-                  <svg 
-                    className="absolute top-0 left-0 pointer-events-none z-5"
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    {currentPoints.map((point, index) => {
-                      if (index === 0) return null;
-                      const prevPoint = currentPoints[index - 1];
-                      return (
+                  {/* Lines for area measurement */}
+                  {(selectedAreaType || measurementState.activeToolType === 'area') && currentPoints.length > 1 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {currentPoints.slice(1).map((point, index) => {
+                        const prevPoint = currentPoints[index];
+                        return (
+                          <line
+                            key={`area-line-${index}`}
+                            x1={prevPoint[0]}
+                            y1={prevPoint[1]}
+                            x2={point[0]}
+                            y2={point[1]}
+                            stroke="green"
+                            strokeWidth="3"
+                            strokeDasharray="5,5"
+                          />
+                        );
+                      })}
+                      {currentPoints.length >= 3 && (
                         <line
-                          key={index}
-                          x1={prevPoint[0]}
-                          y1={prevPoint[1]}
-                          x2={point[0]}
-                          y2={point[1]}
+                          x1={currentPoints[currentPoints.length - 1][0]}
+                          y1={currentPoints[currentPoints.length - 1][1]}
+                          x2={currentPoints[0][0]}
+                          y2={currentPoints[0][1]}
                           stroke="green"
                           strokeWidth="3"
                           strokeDasharray="5,5"
                         />
-                      );
-                    })}
-                    {currentPoints.length >= 3 && (
-                      <line
-                        x1={currentPoints[currentPoints.length - 1][0]}
-                        y1={currentPoints[currentPoints.length - 1][1]}
-                        x2={currentPoints[0][0]}
-                        y2={currentPoints[0][1]}
-                        stroke="green"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                  </svg>
-                )}
+                      )}
+                    </svg>
+                  )}
 
-                {/* Lines for distance measurement */}
-                {(selectedDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
-                  <svg 
-                    className="absolute top-0 left-0 pointer-events-none z-5"
-                    style={{ width: '100%', height: '100%' }}
-                  >
-                    {/* Horizontal line (first 2 points) */}
-                    {currentPoints.length >= 2 && (
-                      <line
-                        x1={currentPoints[0][0]}
-                        y1={currentPoints[0][1]}
-                        x2={currentPoints[1][0]}
-                        y2={currentPoints[1][1]}
-                        stroke="blue"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                    
-                    {/* Vertical line (points 3 and 4) */}
-                    {currentPoints.length >= 4 && (
-                      <line
-                        x1={currentPoints[2][0]}
-                        y1={currentPoints[2][1]}
-                        x2={currentPoints[3][0]}
-                        y2={currentPoints[3][1]}
-                        stroke="red"
-                        strokeWidth="3"
-                        strokeDasharray="5,5"
-                      />
-                    )}
-                  </svg>
+                  {/* Lines for angle measurement */}
+                  {(selectedAngleType || measurementState.activeToolType === 'angle') && currentPoints.length > 1 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {/* First line: from point 1 to point 2 (vertex) */}
+                      {currentPoints.length >= 2 && (
+                        <line
+                          x1={currentPoints[0][0]}
+                          y1={currentPoints[0][1]}
+                          x2={currentPoints[1][0]}
+                          y2={currentPoints[1][1]}
+                          stroke="orange"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                      
+                      {/* Second line: from point 2 (vertex) to point 3 */}
+                      {currentPoints.length >= 3 && (
+                        <line
+                          x1={currentPoints[1][0]}
+                          y1={currentPoints[1][1]}
+                          x2={currentPoints[2][0]}
+                          y2={currentPoints[2][1]}
+                          stroke="orange"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                    </svg>
+                  )}
+
+                  {/* Lines for distance measurement */}
+                  {(selectedRawDistanceType || measurementState.activeToolType === 'distance') && currentPoints.length > 0 && (
+                    <svg 
+                      className="absolute top-0 left-0 pointer-events-none z-5"
+                      style={{ width: '100%', height: '100%' }}
+                    >
+                      {/* Horizontal line (first 2 points) */}
+                      {currentPoints.length >= 2 && (
+                        <line
+                          x1={currentPoints[0][0]}
+                          y1={currentPoints[0][1]}
+                          x2={currentPoints[1][0]}
+                          y2={currentPoints[1][1]}
+                          stroke="blue"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                      
+                      {/* Vertical line (points 3 and 4) */}
+                      {currentPoints.length >= 4 && (
+                        <line
+                          x1={currentPoints[2][0]}
+                          y1={currentPoints[2][1]}
+                          x2={currentPoints[3][0]}
+                          y2={currentPoints[3][1]}
+                          stroke="red"
+                          strokeWidth="3"
+                          strokeDasharray="5,5"
+                        />
+                      )}
+                    </svg>
+                  )}
+                </div>
+                
+                {/* Status indicator */}
+                {(selectedAngleType || selectedAreaType || selectedRawDistanceType || measurementState.activeToolType) && (
+                  <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm z-20">
+                    {getStatusText()}
+                  </div>
+                )}
+                
+                {isLoading && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-30">
+                    <div className="text-white">
+                      {selectedAreaType ? 'Calculating area...' : 
+                       selectedAngleType ? 'Calculating angle...' : 
+                       selectedRawDistanceType ? 'Calculating distance...' : 'Processing...'}
+                    </div>
+                  </div>
                 )}
               </div>
-              
-              {/* Status indicator */}
-              {(selectedAngleType || selectedAreaType || selectedDistanceType || measurementState.activeToolType) && (
-                <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm z-20">
-                  {getStatusText()}
-                </div>
-              )}
-              
-              {isLoading && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-30">
-                  <div className="text-white">
-                    {selectedAreaType ? 'Calculating area...' : 
-                     selectedAngleType ? 'Calculating angle...' : 
-                     selectedDistanceType ? 'Calculating distance ratio...' : 'Processing...'}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center text-gray-400">
-              <div className="text-lg mb-2">Loading frame...</div>
-              <div className="text-sm">Frame {frameData.frameIdx} • {frameData.timestamp.toFixed(3)}s</div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className={`text-center transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                <div className="text-lg mb-2">Loading frame...</div>
+                <div className="text-sm">Frame {frameData.frameIdx} • {frameData.timestamp.toFixed(3)}s</div>
+              </div>
+            )}
+          </div>
 
-        <div className="flex flex-col gap-4">
-          <MeasurementToolsPanel
-            measurements={measurements}
-            onSave={saveMeasurements}
-            onAngleTypeSelect={handleAngleTypeSelect}
-            onAreaTypeSelect={handleAreaTypeSelect}
-            onDistanceTypeSelect={handleDistanceTypeSelect}
-            selectedAngleType={selectedAngleType}
-            selectedAreaType={selectedAreaType}
-            selectedDistanceType={selectedDistanceType}
-            distanceMeasurementStep={distanceMeasurementStep} // Add this line
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            onClearAll={handleClearAll}
-            canUndo={canUndo}
-            canRedo={canRedo}
-          />
-        </div>
-      </MeasurementLayout>
+          <div className="flex flex-col gap-4">
+            <MeasurementToolsPanel
+              measurements={measurements}
+              onSave={saveMeasurements}
+              onAngleTypeSelect={handleAngleTypeSelect}
+              onAreaTypeSelect={handleAreaTypeSelect}
+              onRawDistanceTypeSelect={handleRawDistanceToolSelect}
+              selectedAngleType={selectedAngleType}
+              selectedAreaType={selectedAreaType}
+              selectedRawDistanceType={selectedRawDistanceType}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              onClearAll={handleClearAll}
+              canUndo={canUndo}
+              canRedo={canRedo}
+            />
+          </div>
+        </MeasurementLayout>
 
-      <ConfirmationPopup
-        isOpen={showBackConfirmation}
-        title="Unsaved Changes"
-        message="Your current frame measurements will not be saved. Are you sure you want to go back to video analysis?"
-        confirmButtonText="Confirm"
-        cancelButtonText="Cancel"
-        onConfirm={handleConfirmBack}
-        onCancel={handleCancelBack}
-      />
+        <ConfirmationPopup
+          isOpen={showBackConfirmation}
+          title="Unsaved Changes"
+          message="Your current frame measurements will not be saved. Are you sure you want to go back to video analysis?"
+          confirmButtonText="Confirm"
+          cancelButtonText="Cancel"
+          onConfirm={handleConfirmBack}
+          onCancel={handleCancelBack}
+        />
+      </div>
     </>
   );
 }

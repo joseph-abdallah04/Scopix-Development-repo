@@ -30,7 +30,7 @@ function SettingsPage() {
       faqs: [
         {
           question: "How long does analysis take?",
-          answer: "Analysis time varies depending on file size and complexity. Most analyses complete within 1-5 minutes."
+          answer: "Analysis time varies depending on file size and complexity. Analysis can take several minutes to an hour."
         },
         {
           question: "What graphs and metrics are generated in CSV Analysis?",
@@ -38,7 +38,6 @@ function SettingsPage() {
 The software outputs graphs comparing R5, X5 and Volume over Time.
 Cursor can be hovered on the graph to identify the specific data-point for each value. The user can also filter the graph curves displayed by clicking on R5, X5 or Volume to view the preferred values on the graph.
 
-Table:
 Table of data including:
 • TOTAL values for R5, X5, R5-19
 • INSP values for R5, X5, R5-19
@@ -63,11 +62,11 @@ The software will calculate the enclosed area and percentage closure based on yo
       faqs: [
         {
           question: "Are results saved in the app?",
-          answer: `No. Once the CSV file is processed, you are prompted to save the output as a .PDF or .XLSX, but the data is not retained within the app.`
+          answer: `No. Once the CSV file is processed, you are prompted to save/export the results, but the data is not retained within the app.`
         },
         {
           question: "Can I export the analysis results and what formats are supported?",
-          answer: `You can export all the performed results as a PDF or Excel file. Use the export options available after analysis.`
+          answer: `Video analysis results are exported as an Excel (.xlsx) file. CSV analysis results are exported as a .zip file containing .csv, .png, and .pdf files.`
         }
       ]
     },
@@ -81,7 +80,7 @@ All data should be de-identified before uploading.`
         },
         {
           question: "Can I save a session and return to it later?",
-          answer: `No; currently all sessions are temporary and cleared upon exit unless exported.`
+          answer: `No. Currently all sessions are temporary and cleared upon exit unless exported.`
         }
       ]
     },
@@ -94,7 +93,6 @@ All data should be de-identified before uploading.`
 • Is not corrupted
 • Is locally accessible
 • Uses the correct column headers
-• Check that your file meets the size requirements: 2GB
 
 If problems persist, try restarting the app.`
         },
@@ -104,7 +102,8 @@ If problems persist, try restarting the app.`
 • In the correct format (MP4)
 • Not corrupted
 • Locally accessible
-• Check that your file meets the size requirements: 2GB
+• Check that your file is not too large (2GB max)
+• Check that your file is not too long (15 minutes max)
 
 If problems persist, try restarting the app.`
         }

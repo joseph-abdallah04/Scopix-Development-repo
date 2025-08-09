@@ -1,47 +1,18 @@
-import { FiRotateCcw, FiRotateCw, FiTrash2, FiSquare } from 'react-icons/fi';
+import { FiRotateCcw, FiRotateCw, FiTrash2 } from 'react-icons/fi';
+import { useTheme } from '../contexts/theme-context';
+import type { Measurements } from '../types/measurements';
 
-interface AreaMeasurement {
-  area_pixels: number;
-  perimeter_pixels: number;
-  method: string;
-  point_count: number;
-  area_mm2?: number;
-  perimeter_mm?: number;
-  centroid?: number[];
-  bbox?: number[];
-  eccentricity?: number;
-  solidity?: number;
-}
 
-interface AngleMeasurement {
-  angle: number;
-  points: number[][];
-}
-
-interface DistanceMeasurement {
-  horizontal_distance: number;
-  vertical_distance: number;
-  ratio_percentage: number;
-  horizontal_points: number[][];
-  vertical_points: number[][];
-}
 
 interface MeasurementToolsPanelProps {
-  measurements: {
-    glottic?: AngleMeasurement;
-    supraglottic?: AngleMeasurement;
-    glottic_area?: AreaMeasurement;
-    supraglottic_area?: AreaMeasurement;
-    distance_ratio?: DistanceMeasurement;
-  };
+  measurements: Measurements;
   onSave: (measurements: any) => void;
-  onAngleTypeSelect: (type: 'glottic' | 'supraglottic' | null) => void;
-  onAreaTypeSelect: (type: 'glottic_area' | 'supraglottic_area' | null) => void;
-  onDistanceTypeSelect: (type: 'distance_ratio' | null) => void;
-  selectedAngleType: 'glottic' | 'supraglottic' | null;
-  selectedAreaType: 'glottic_area' | 'supraglottic_area' | null;
-  selectedDistanceType: 'distance_ratio' | null;
-  distanceMeasurementStep?: 'horizontal' | 'vertical' | null; // Add this prop
+  onAngleTypeSelect: (type: 'angle_a' | 'angle_b' | null) => void;
+  onAreaTypeSelect: (type: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null) => void;
+  onRawDistanceTypeSelect: (type: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null) => void;
+  selectedAngleType: 'angle_a' | 'angle_b' | null;
+  selectedAreaType: 'area_a' | 'area_b' | 'area_av' | 'area_bv' | null;
+  selectedRawDistanceType: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h' | null;
   onUndo: () => void;
   onRedo: () => void;
   onClearAll: () => void;
@@ -54,17 +25,18 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   onSave,
   onAngleTypeSelect,
   onAreaTypeSelect,
-  onDistanceTypeSelect,
+  onRawDistanceTypeSelect,
   selectedAngleType,
   selectedAreaType,
-  selectedDistanceType,
-  distanceMeasurementStep, // Add this
+  selectedRawDistanceType,
   onUndo,
   onRedo,
   onClearAll,
   canUndo,
   canRedo
 }) => {
+  const { isDarkMode } = useTheme();
+  
   console.log('🎯 RENDER - MeasurementToolsPanel with props:', {
     selectedAngleType,
     selectedAreaType,
@@ -72,22 +44,24 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
     hasAreaHandler: !!onAreaTypeSelect
   });
 
-  const formatAngle = (angle: number) => `${angle.toFixed(1)}°`;
-  const formatArea = (area: number, unit: string = 'px²') => `${area.toFixed(1)} ${unit}`;
-  const formatDistance = (distance: number, unit: string = 'px') => `${distance.toFixed(1)} ${unit}`;
-  const formatRatio = (ratio: number) => `${ratio.toFixed(1)}%`;
+
 
   // Check if at least one measurement has been taken
   const hasMeasurements = !!(
-    measurements.glottic || 
-    measurements.supraglottic || 
-    measurements.glottic_area || 
-    measurements.supraglottic_area ||
-    measurements.distance_ratio
+    measurements.angle_a || 
+    measurements.angle_b || 
+    measurements.area_a || 
+    measurements.area_b ||
+    measurements.area_av ||
+    measurements.area_bv ||
+    measurements.distance_a ||
+    measurements.distance_c ||
+    measurements.distance_g ||
+    measurements.distance_h
   );
 
   // Handle angle tool selection/deselection
-  const handleAngleToolClick = (type: 'glottic' | 'supraglottic') => {
+  const handleAngleToolClick = (type: 'angle_a' | 'angle_b') => {
     console.log(`${type} angle button clicked`);
     if (onAngleTypeSelect) {
       // If already selected, deselect it (pass null)
@@ -100,7 +74,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
   };
 
   // Handle area tool selection/deselection
-  const handleAreaToolClick = (type: 'glottic_area' | 'supraglottic_area') => {
+  const handleAreaToolClick = (type: 'area_a' | 'area_b' | 'area_av' | 'area_bv') => {
     console.log(`${type} button clicked`);
     if (onAreaTypeSelect) {
       // If already selected, deselect it (pass null)
@@ -112,142 +86,306 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
     }
   };
 
-  // Handle distance tool selection/deselection
-  const handleDistanceToolClick = (type: 'distance_ratio') => {
-    console.log(`${type} button clicked`);
-    if (onDistanceTypeSelect) {
-      if (selectedDistanceType === type) {
-        onDistanceTypeSelect(null);
+
+
+  // Add handler for raw distance tools
+  const handleRawDistanceToolClick = (type: 'distance_a' | 'distance_c' | 'distance_g' | 'distance_h') => {
+    console.log(`${type} raw distance button clicked`);
+    if (onRawDistanceTypeSelect) {
+      // If already selected, deselect it (pass null)
+      if (selectedRawDistanceType === type) {
+        onRawDistanceTypeSelect(null);
       } else {
-        onDistanceTypeSelect(type);
+        onRawDistanceTypeSelect(type);
       }
     }
   };
 
   return (
-    <div className="bg-zinc-900 rounded-xl border border-gray-700 p-4 w-80 flex flex-col gap-4 h-full overflow-hidden">
-      <h3 className="text-xl text-white text-center border-b border-gray-700 pb-2 m-0 flex-shrink-0">
+    <div className={`rounded-xl border p-4 w-80 flex flex-col gap-4 h-full overflow-hidden transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-zinc-900 border-gray-700' 
+        : 'bg-gray-300 border-gray-500'
+    }`}>
+      <h3 className={`text-xl text-center border-b pb-2 m-0 flex-shrink-0 transition-colors duration-300 ${
+        isDarkMode 
+          ? 'text-white border-gray-700' 
+          : 'text-gray-900 border-gray-500'
+      }`}>
         Measurement Tools
       </h3>
       
       {/* Scrollable content area with proper padding to avoid scrollbar overlap */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-4 min-h-0 pr-2 -mr-2">
         {/* Undo/Redo Controls */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Actions</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Actions</h4>
           <div className="flex gap-2">
             <button
               onClick={onUndo}
               disabled={!canUndo}
-              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium ${
+              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1 ${
                 canUndo
-                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  ? (isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-400 hover:bg-gray-500 text-gray-800')
+                  : (isDarkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 text-gray-600 cursor-not-allowed')
               }`}
             >
               <FiRotateCcw size={14} />
-              Undo
+              <span>Undo</span>
             </button>
             <button
               onClick={onRedo}
               disabled={!canRedo}
-              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium ${
+              className={`flex-1 rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1 ${
                 canRedo
-                  ? 'bg-gray-600 hover:bg-gray-500 text-white'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  ? (isDarkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-400 hover:bg-gray-500 text-gray-800')
+                  : (isDarkMode ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-500 text-gray-600 cursor-not-allowed')
               }`}
             >
               <FiRotateCw size={14} />
-              Redo
+              <span>Redo</span>
             </button>
             <button
               onClick={onClearAll}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-3 py-2 text-sm transition-colors font-medium"
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded px-3 py-2 text-sm transition-colors font-medium flex items-center justify-center gap-1"
             >
               <FiTrash2 size={14} />
-              Clear All
+              <span>Clear All</span>
             </button>
           </div>
         </div>
         
         {/* Angle Measurement Tools */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Angle Measurements</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Angle Measurements</h4>
           <div className="flex flex-col gap-2">
             <button 
-              onClick={() => handleAngleToolClick('glottic')}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors font-medium ${
-                selectedAngleType === 'glottic' 
+              onClick={() => handleAngleToolClick('angle_a')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAngleType === 'angle_a' 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
-              <span className="text-base">∠</span>
-              Glottic Opening Angle
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="text-sm">∠</span>
+                <span className="truncate">Angle A (Glottic)</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAngleType === 'angle_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.angle_a !== undefined && measurements.angle_a !== null
+                  ? `${measurements.angle_a.toFixed(1)}°`
+                  : '--'}
+              </span>
             </button>
             <button 
-              onClick={() => handleAngleToolClick('supraglottic')}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors font-medium ${
-                selectedAngleType === 'supraglottic' 
+              onClick={() => handleAngleToolClick('angle_b')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAngleType === 'angle_b' 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
-              <span className="text-base">∠</span>
-              Supraglottic Opening Angle
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="text-sm">∠</span>
+                <span className="truncate">Angle B (Supraglottic)</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAngleType === 'angle_b' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.angle_b !== undefined && measurements.angle_b !== null
+                  ? `${measurements.angle_b.toFixed(1)}°`
+                  : '--'}
+              </span>
             </button>
           </div>
         </div>
 
         {/* Area Measurement Tools */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Area Measurements</h4>
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Area Measurements</h4>
           <div className="flex flex-col gap-2">
             <button 
-              onClick={() => handleAreaToolClick('glottic_area')}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors font-medium ${
-                selectedAreaType === 'glottic_area' 
+              onClick={() => handleAreaToolClick('area_a')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAreaType === 'area_a' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
-              <FiSquare size={14} />
-              Glottic Opening Area
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Area A (Supraglottic)</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.area_a !== undefined && measurements.area_a !== null
+                  ? `${measurements.area_a.toFixed(0)} px²`
+                  : '--'}
+              </span>
             </button>
             <button 
-              onClick={() => handleAreaToolClick('supraglottic_area')}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors font-medium ${
-                selectedAreaType === 'supraglottic_area' 
+              onClick={() => handleAreaToolClick('area_b')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAreaType === 'area_b' 
                   ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
-              <FiSquare size={14} />
-              Supraglottic Opening Area
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Area B (Glottal)</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_b' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.area_b !== undefined && measurements.area_b !== null
+                  ? `${measurements.area_b.toFixed(0)} px²`
+                  : '--'}
+              </span>
+            </button>
+            <button 
+              onClick={() => handleAreaToolClick('area_av')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAreaType === 'area_av' 
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Area AV</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_av' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.area_av !== undefined && measurements.area_av !== null
+                  ? `${measurements.area_av.toFixed(0)} px²`
+                  : '--'}
+              </span>
+            </button>
+            <button 
+              onClick={() => handleAreaToolClick('area_bv')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedAreaType === 'area_bv' 
+                  ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' 
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Area BV</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedAreaType === 'area_bv' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.area_bv !== undefined && measurements.area_bv !== null
+                  ? `${measurements.area_bv.toFixed(0)} px²`
+                  : '--'}
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Distance Ratio Measurement Tool */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Distance Ratio Measurements</h4>
+        {/* Raw Distance Measurement Tools */}
+        <div className={`rounded-lg p-3 flex-shrink-0 transition-colors duration-300 ${
+          isDarkMode ? 'bg-gray-800' : 'bg-gray-200'
+        }`}>
+          <h4 className={`text-sm font-medium mb-3 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>Distance Measurements</h4>
           <div className="flex flex-col gap-2">
-            <button 
-              onClick={() => handleDistanceToolClick('distance_ratio')}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors font-medium ${
-                selectedDistanceType === 'distance_ratio' 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg' 
-                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+            <button
+              onClick={() => handleRawDistanceToolClick('distance_a')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedRawDistanceType === 'distance_a'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
               }`}
             >
-              <span className="text-base">📏</span>
-              Distance Ratio (X/Y)
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Distance A</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_a' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.distance_a !== undefined && measurements.distance_a !== null
+                  ? `${measurements.distance_a.toFixed(1)} px`
+                  : '--'}
+              </span>
+            </button>
+            <button
+              onClick={() => handleRawDistanceToolClick('distance_c')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedRawDistanceType === 'distance_c'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Distance C</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_c' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.distance_c !== undefined && measurements.distance_c !== null
+                  ? `${measurements.distance_c.toFixed(1)} px`
+                  : '--'}
+              </span>
+            </button>
+            <button
+              onClick={() => handleRawDistanceToolClick('distance_g')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedRawDistanceType === 'distance_g'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Distance G</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_g' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.distance_g !== undefined && measurements.distance_g !== null
+                  ? `${measurements.distance_g.toFixed(1)} px`
+                  : '--'}
+              </span>
+            </button>
+            <button
+              onClick={() => handleRawDistanceToolClick('distance_h')}
+              className={`flex items-center justify-between rounded px-3 py-2 text-xs transition-colors font-medium min-h-[2.5rem] ${
+                selectedRawDistanceType === 'distance_h'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg'
+                  : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-50 text-gray-800')
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0 flex-shrink">
+                <span className="truncate">Distance H</span>
+              </div>
+              <span className={`text-xs ml-2 flex-shrink-0 ${
+                selectedRawDistanceType === 'distance_h' ? 'text-gray-200' : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+              }`}>
+                {measurements.distance_h !== undefined && measurements.distance_h !== null
+                  ? `${measurements.distance_h.toFixed(1)} px`
+                  : '--'}
+              </span>
             </button>
           </div>
         </div>
 
         {/* Instructions */}
-        {(selectedAngleType || selectedAreaType || selectedDistanceType) && (
+        {(selectedAngleType || selectedAreaType || selectedRawDistanceType) && (
           <div className="bg-yellow-800 rounded-lg p-3 border-2 border-yellow-600 flex-shrink-0">
             <h4 className="text-sm font-medium text-yellow-100 mb-2">📋 Instructions</h4>
             {selectedAngleType && (
@@ -280,23 +418,16 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
                 </p>
               </>
             )}
-            {selectedDistanceType && (
+            {selectedRawDistanceType && (
               <>
                 <p className="text-xs text-yellow-200">
-                  Measure horizontal and vertical distances for ratio calculation:
+                  Click 2 points to measure {selectedRawDistanceType.replace('_', ' ')} distance:
                 </p>
                 <ol className="text-xs text-yellow-200 mt-1 ml-4">
-                  <li>1. Click 2 points for <strong>horizontal</strong> distance</li>
-                  <li>2. Click 2 points for <strong>vertical</strong> distance</li>
-                  <li>3. Ratio will be calculated as (X/Y) × 100</li>
+                  <li>1. Click the first point</li>
+                  <li>2. Click the second point</li>
+                  <li>3. Distance will be calculated automatically</li>
                 </ol>
-                {distanceMeasurementStep && (
-                  <div className="mt-2 p-2 bg-yellow-700 rounded">
-                    <p className="text-xs text-yellow-100 font-medium">
-                      📍 Current step: {distanceMeasurementStep === 'horizontal' ? 'Measuring horizontal distance' : 'Measuring vertical distance'}
-                    </p>
-                  </div>
-                )}
                 <p className="text-xs text-yellow-200 mt-2 italic">
                   💡 Click the tool again to unselect
                 </p>
@@ -304,97 +435,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
             )}
           </div>
         )}
-
-        {/* Current Measurements Display */}
-        <div className="bg-gray-800 rounded-lg p-3 flex-shrink-0">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">Current Measurements</h4>
-          
-          {/* Angle Measurements */}
-          <div className="mb-4">
-            <h5 className="text-xs font-medium text-gray-400 mb-2">ANGLES</h5>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Glottic Opening:</span>
-              <div className="text-sm text-white">
-                {measurements.glottic ? formatAngle(measurements.glottic.angle) : 'Not measured'}
-              </div>
-            </div>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Supraglottic Opening:</span>
-              <div className="text-sm text-white">
-                {measurements.supraglottic ? formatAngle(measurements.supraglottic.angle) : 'Not measured'}
-              </div>
-            </div>
-          </div>
-
-          {/* Area Measurements */}
-          <div className="mb-4">
-            <h5 className="text-xs font-medium text-gray-400 mb-2">AREAS</h5>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Glottic Area:</span>
-              <div className="text-sm text-white">
-                {measurements.glottic_area ? (
-                  <div>
-                    <div>{formatArea(measurements.glottic_area.area_pixels)}</div>
-                    {measurements.glottic_area.area_mm2 && (
-                      <div className="text-xs text-gray-400">
-                        {formatArea(measurements.glottic_area.area_mm2, 'mm²')}
-                      </div>
-                    )}
-                  </div>
-                ) : 'Not measured'}
-              </div>
-            </div>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Supraglottic Area:</span>
-              <div className="text-sm text-white">
-                {measurements.supraglottic_area ? (
-                  <div>
-                    <div>{formatArea(measurements.supraglottic_area.area_pixels)}</div>
-                    {measurements.supraglottic_area.area_mm2 && (
-                      <div className="text-xs text-gray-400">
-                        {formatArea(measurements.supraglottic_area.area_mm2, 'mm²')}
-                      </div>
-                    )}
-                  </div>
-                ) : 'Not measured'}
-              </div>
-            </div>
-          </div>
-
-          {/* Distance Ratio Measurements */}
-          <div className="mb-4">
-            <h5 className="text-xs font-medium text-gray-400 mb-2">DISTANCE RATIO</h5>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Horizontal Distance:</span>
-              <div className="text-sm text-white">
-                {measurements.distance_ratio ? formatDistance(measurements.distance_ratio.horizontal_distance) : 'Not measured'}
-              </div>
-            </div>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Vertical Distance:</span>
-              <div className="text-sm text-white">
-                {measurements.distance_ratio ? formatDistance(measurements.distance_ratio.vertical_distance) : 'Not measured'}
-              </div>
-            </div>
-            
-            <div className="mb-2">
-              <span className="text-xs text-gray-500">Ratio (X/Y):</span>
-              <div className="text-sm text-white">
-                {measurements.distance_ratio ? formatRatio(measurements.distance_ratio.ratio_percentage) : 'Not measured'}
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-gray-500 mb-4">
-            Select a measurement type above to start
-          </p>
-        </div>
+        
       </div>
       
       {/* Save button stays at bottom - outside scrollable area */}
@@ -405,7 +446,7 @@ const MeasurementToolsPanel: React.FC<MeasurementToolsPanelProps> = ({
           className={`w-full border-none rounded-lg px-4 py-3 text-sm font-medium cursor-pointer transition-colors duration-200 ${
             hasMeasurements
               ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+              : (isDarkMode ? 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50' : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50')
           }`}
         >
           Save Measurements

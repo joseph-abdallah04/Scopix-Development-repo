@@ -1,139 +1,89 @@
 import React, { useState, useEffect } from 'react';
 import { FiTrash2 } from 'react-icons/fi';
-import ConfirmationPopup from './ConfirmationPopup'; // Add this import
-
-// interface MeasurementValue {
-//   value: number | null;
-//   percentageClosure: number | null;
-// }
+import ConfirmationPopup from './ConfirmationPopup';
+import { useTheme } from '../contexts/theme-context';
+import { calculateAllBaselineComparisons, type FullFrameData, type BaselineComparison } from '../utils/baselineCalculations';
 
 interface FrameDetailsPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  frame: {
-    id: string;
-    name: string;
-    customName?: string;
-    timestamp: number;
-    frameIdx?: number;
-    isBaseline: boolean;
-    thumbnailUrl?: string;
-    measurements: {
-      glottic_angle?: number | null;
-      supraglottic_angle?: number | null;
-      glottic_area?: number | null;
-      supraglottic_area?: number | null;
-      distance_ratio?: {
-        horizontal_distance: number;
-        vertical_distance: number;
-        ratio_percentage: number;
-        horizontal_points: number[][];
-        vertical_points: number[][];
-      } | null;
-    };
-  } | null;
-  baselineFrame: {
-    id: string;
-    measurements: {
-      glottic_angle?: number | null;
-      supraglottic_angle?: number | null;
-      glottic_area?: number | null;
-      supraglottic_area?: number | null;
-      distance_ratio?: {
-        horizontal_distance: number;
-        vertical_distance: number;
-        ratio_percentage: number;
-        horizontal_points: number[][];
-        vertical_points: number[][];
-      } | null;
-    };
-  } | null;
+  frameId: string;
+  baselineFrameId: string | null;
   formatTime: (time: number) => string;
   onSetBaseline?: (frameId: string) => void;
-  onDeleteFrame?: (frameId: string) => void; // Add this prop
+  onDeleteFrame?: (frameId: string) => void;
+  onRenameFrame?: (frameId: string, newName: string) => void;
 }
 
 const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
   isOpen,
   onClose,
-  frame,
-  baselineFrame,
+  frameId,
+  baselineFrameId,
   formatTime,
   onSetBaseline,
-  onDeleteFrame
+  onDeleteFrame,
 }) => {
-  // Local state to track the current frame with updated baseline status
-  const [currentFrame, setCurrentFrame] = useState(frame);
-  
-  // Add state for delete confirmation
+  const { isDarkMode } = useTheme();
+  const [currentFrameData, setCurrentFrameData] = useState<FullFrameData | null>(null);
+  const [, setBaselineFrameData] = useState<FullFrameData | null>(null);
+  const [baselineComparisons, setBaselineComparisons] = useState<Record<string, BaselineComparison | null> | null>(null);
+  const [, setIsLoading] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
-  // Update local frame state when baseline changes
+  // Fetch frame data when popup opens
   useEffect(() => {
-    if (frame && baselineFrame) {
-      // Check if this frame is now the baseline by comparing with baselineFrame
-      const isNowBaseline = frame.id === baselineFrame.id;
-      
-      // Update the frame's isBaseline property if it changed
-      if (frame.isBaseline !== isNowBaseline) {
-        setCurrentFrame({
-          ...frame,
-          isBaseline: isNowBaseline
-        });
-      } else {
-        setCurrentFrame(frame);
+    if (!isOpen || !frameId) return;
+    
+    const fetchFrameData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch current frame data
+        const currentResponse = await fetch(`http://localhost:8000/session/frame-details/${frameId}`);
+        if (!currentResponse.ok) throw new Error('Failed to fetch frame details');
+        const currentData = await currentResponse.json();
+        setCurrentFrameData(currentData);
+        
+        // Fetch baseline data if needed and different from current
+        if (baselineFrameId && baselineFrameId !== frameId) {
+          const baselineResponse = await fetch(`http://localhost:8000/session/frame-details/${baselineFrameId}`);
+          if (baselineResponse.ok) {
+            const baselineData = await baselineResponse.json();
+            setBaselineFrameData(baselineData);
+            
+            // Calculate comparisons
+            const comparisons = calculateAllBaselineComparisons(currentData, baselineData);
+            setBaselineComparisons(comparisons);
+          }
+        } else {
+          setBaselineFrameData(null);
+          setBaselineComparisons(null);
+        }
+      } catch (error) {
+        console.error('Error fetching frame data:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      setCurrentFrame(frame);
+    };
+    
+    fetchFrameData();
+  }, [isOpen, frameId, baselineFrameId]);
+
+  // Clear data when popup closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCurrentFrameData(null);
+      setBaselineFrameData(null);
+      setBaselineComparisons(null);
     }
-  }, [frame, baselineFrame]);
+  }, [isOpen]);
 
-  if (!isOpen || !currentFrame) return null;
-
-  // Calculate percentage closure on-demand
-  const calculatePercentageClosure = (current: number | null | undefined, baseline: number | null | undefined): number | null => {
-    if (current === null || current === undefined || baseline === null || baseline === undefined || baseline === 0) {
-      return null;
-    }
-    return ((baseline - current) / baseline) * 100;
-  };
-
-  // Calculate percentage change for distance ratio
-  const calculatePercentageChange = (current: number | null | undefined, baseline: number | null | undefined): number | null => {
-    if (current === null || current === undefined || baseline === null || baseline === undefined || baseline === 0) {
-      return null;
-    }
-    return ((current - baseline) / baseline) * 100;
-  };
-
-  // Format measurement value with units
-  const formatMeasurement = (value: number | null | undefined, isAngle: boolean, unit: string = ''): string => {
-    if (value === null || value === undefined) return 'Not measured';
-    return isAngle ? `${value.toFixed(1)}°` : `${value.toFixed(1)} ${unit}`;
-  };
-
-  // Format percentage closure
-  const formatPercentage = (value: number | null): string => {
-    if (value === null) return 'N/A';
-    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
-
-  // Format percentage change
-  const formatPercentageChange = (value: number | null): string => {
-    if (value === null) return 'N/A';
-    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
+  if (!isOpen || !currentFrameData) return null;
 
   // Handle setting this frame as baseline
   const handleSetBaseline = async () => {
-    if (onSetBaseline && currentFrame) {
-      await onSetBaseline(currentFrame.id);
-      
-      // Immediately update local state to show the button change
-      setCurrentFrame({
-        ...currentFrame,
-        isBaseline: true
-      });
+    if (onSetBaseline && currentFrameData) {
+      await onSetBaseline(currentFrameData.frame_id);
     }
   };
 
@@ -143,15 +93,58 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
   };
 
   const handleConfirmDelete = () => {
-    if (onDeleteFrame && currentFrame) {
-      onDeleteFrame(currentFrame.id);
+    if (onDeleteFrame && currentFrameData) {
+      onDeleteFrame(currentFrameData.frame_id);
     }
     setShowDeleteConfirmation(false);
-    onClose(); // Close the popup after deletion
+    onClose();
   };
 
   const handleCancelDelete = () => {
     setShowDeleteConfirmation(false);
+  };
+
+  const isBaseline = baselineFrameId === currentFrameData.frame_id;
+
+  // Helper function to render value with baseline comparison
+  const renderValueWithBaseline = (
+    value: number | null | undefined,
+    unit: string,
+    comparisonKey: string
+  ) => {
+    const comparison = baselineComparisons?.[comparisonKey];
+    
+    return (
+      <div>
+        <div className={`text-sm transition-colors duration-300 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
+          {value != null ? `${value.toFixed(3)}${unit}` : 'Not calculated'}
+        </div>
+        
+        {/* Baseline comparison */}
+        {!isBaseline && comparison && (
+          <div className="text-xs mt-1 space-y-0.5">
+            <div className={`transition-colors duration-300 ${
+              isDarkMode ? 'text-blue-300' : 'text-blue-600'
+            }`}>
+              % of Baseline: {comparison.percentOfBaseline.toFixed(1)}%
+            </div>
+            <div className={`${comparison.percentChangeFromBaseline >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              % Change: {comparison.percentChangeFromBaseline >= 0 ? '+' : ''}{comparison.percentChangeFromBaseline.toFixed(1)}%
+            </div>
+          </div>
+        )}
+        
+        {isBaseline && (
+          <div className={`text-xs mt-1 transition-colors duration-300 ${
+            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+          }`}>
+            This is the baseline frame
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -161,13 +154,19 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
         onClick={onClose}
       >
         <div 
-          className="bg-[#232a36]/90 backdrop-blur rounded-2xl p-6 shadow-lg border border-gray-500/30 max-w-lg w-full"
+          className={`bg-[#232a36]/90 backdrop-blur rounded-2xl p-6 shadow-lg border border-gray-500/30 max-w-lg w-full max-h-[90vh] overflow-y-auto ${
+            isDarkMode 
+              ? 'bg-gray-90 border-gray-500/30' 
+              : 'bg-gray-300 border-gray-400/30'
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-white">
-              {currentFrame.customName || currentFrame.name}
-              {currentFrame.isBaseline && (
+            <h2 className={`text-xl font-semibold transition-colors duration-300 ${
+              isDarkMode ? 'text-white' : 'text-gray-900'
+            }`}>
+              {currentFrameData.custom_name || `Frame ${currentFrameData.frame_idx}`}
+              {isBaseline && (
                 <span className="ml-2 text-xs bg-yellow-500 text-black px-2 py-1 rounded-full font-medium">
                   Baseline
                 </span>
@@ -186,7 +185,11 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
               )}
               <button 
                 onClick={onClose}
-                className="text-gray-400 hover:text-white"
+                className={`transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'text-gray-400 hover:text-white' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
                 ✕
               </button>
@@ -196,105 +199,146 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
           {/* Frame thumbnail and basic info */}
           <div className="flex gap-4 mb-4">
             {/* Thumbnail */}
-            {currentFrame.thumbnailUrl && (
-              <div className="flex-shrink-0">
-                <img 
-                  src={currentFrame.thumbnailUrl} 
-                  alt={currentFrame.customName || currentFrame.name}
-                  className="w-24 h-18 rounded object-cover border border-gray-600"
-                />
-              </div>
-            )}
+            <div className="flex-shrink-0">
+              <img 
+                src={`http://localhost:8000/session/frame-thumbnail/${currentFrameData.frame_id}`}
+                alt={currentFrameData.custom_name || `Frame ${currentFrameData.frame_idx}`}
+                className={`w-24 h-18 rounded object-cover border transition-colors duration-300 ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-400'
+                }`}
+              />
+            </div>
             
             {/* Frame info */}
-            <div className="flex flex-col justify-center text-sm text-gray-300">
-              <div>Frame: {currentFrame.frameIdx}</div>
-              <div>Time: {formatTime(currentFrame.timestamp)}</div>
+            <div className={`flex flex-col justify-center text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-800'
+            }`}>
+              <div>Frame: {currentFrameData.frame_idx}</div>
+              <div>Time: {formatTime(currentFrameData.timestamp)}</div>
             </div>
           </div>
 
           <div className="space-y-4">
+            {/* 1. Distance Ratios Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Angle Measurements</h3>
-              <div className="grid grid-cols-2 gap-3 bg-gray-800/50 rounded-lg p-3">
-                <div>
-                  <div className="text-xs text-gray-400">Glottic Angle</div>
-                  <div className="text-sm text-white">
-                    {formatMeasurement(currentFrame.measurements.glottic_angle, true)}
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Distance Ratios</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 1</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_1, '', 'distance_ratio_1')}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Percentage Closure</div>
-                  <div className={`text-sm ${baselineFrame ? 'text-green-400' : 'text-gray-500'}`}>
-                    {baselineFrame 
-                      ? formatPercentage(calculatePercentageClosure(currentFrame.measurements.glottic_angle, baselineFrame.measurements.glottic_angle))
-                      : 'No baseline set'}
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 2</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_2, '', 'distance_ratio_2')}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-400">Supraglottic Angle</div>
-                  <div className="text-sm text-white">
-                    {formatMeasurement(currentFrame.measurements.supraglottic_angle, true)}
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 3</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_3, '', 'distance_ratio_3')}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Percentage Closure</div>
-                  <div className={`text-sm ${baselineFrame ? 'text-green-400' : 'text-gray-500'}`}>
-                    {baselineFrame 
-                      ? formatPercentage(calculatePercentageClosure(currentFrame.measurements.supraglottic_angle, baselineFrame.measurements.supraglottic_angle))
-                      : 'No baseline set'}
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Distance Ratio 4</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.distance_ratio_4, '', 'distance_ratio_4')}
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* 2. P-Factor Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Area Measurements</h3>
-              <div className="grid grid-cols-2 gap-3 bg-gray-800/50 rounded-lg p-3">
-                <div>
-                  <div className="text-xs text-gray-400">Glottic Area</div>
-                  <div className="text-sm text-white">
-                    {formatMeasurement(currentFrame.measurements.glottic_area, false)}
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>P-Factor</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className={`text-xs mb-1 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Area A / Distance A</div>
+                {renderValueWithBaseline(currentFrameData.formulas?.p_factor, '', 'p_factor')}
+              </div>
+            </div>
+
+            {/* 3. C-Factor Section */}
+            <div>
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>C-Factor</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className={`text-xs mb-1 transition-colors duration-300 ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Area BV / (Area AV + Area BV)</div>
+                {renderValueWithBaseline(currentFrameData.formulas?.c_factor, '', 'c_factor')}
+              </div>
+            </div>
+
+            {/* 4. Supraglottic Area Ratios Section - NEW */}
+            <div>
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Supraglottic Area Ratios</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Supraglottic Area Ratio 1</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>Area B / Distance A</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.supraglottic_area_ratio_1, '', 'supraglottic_area_ratio_1')}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Percentage Closure</div>
-                  <div className={`text-sm ${baselineFrame ? 'text-green-400' : 'text-gray-500'}`}>
-                    {baselineFrame 
-                      ? formatPercentage(calculatePercentageClosure(currentFrame.measurements.glottic_area, baselineFrame.measurements.glottic_area))
-                      : 'No baseline set'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400">Supraglottic Area</div>
-                  <div className="text-sm text-white">
-                    {formatMeasurement(currentFrame.measurements.supraglottic_area, false)}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">Percentage Closure</div>
-                  <div className={`text-sm ${baselineFrame ? 'text-green-400' : 'text-gray-500'}`}>
-                    {baselineFrame 
-                      ? formatPercentage(calculatePercentageClosure(currentFrame.measurements.supraglottic_area, baselineFrame.measurements.supraglottic_area))
-                      : 'No baseline set'}
+                  <div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Supraglottic Area Ratio 2</div>
+                    <div className={`text-xs mb-1 transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                    }`}>Area B / (Distance A + Distance C)</div>
+                    {renderValueWithBaseline(currentFrameData.formulas?.supraglottic_area_ratio_2, '', 'supraglottic_area_ratio_2')}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Distance Ratio Measurements - New Section */}
+            {/* 5. Angle Measurements Section - update the number */}
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-2">Distance Ratio Measurements</h3>
-              <div className="bg-gray-800/50 rounded-lg p-3">
-                <div>
-                  <div className="text-xs text-gray-400">Distance Ratio (X/Y)</div>
-                  <div className="text-sm text-white">
-                    {currentFrame.measurements.distance_ratio ? 
-                      formatMeasurement(currentFrame.measurements.distance_ratio.ratio_percentage, false, '%') : 
-                      'Not measured'}
+              <h3 className={`text-sm font-medium mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>Angle Measurements</h3>
+              <div className={`rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode ? 'bg-gray-800/50' : 'bg-gray-100/50'
+              }`}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Angle A</div>
+                    {renderValueWithBaseline(currentFrameData.measurements?.angle_a, '°', 'angle_a')}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">Percentage Change</div>
-                  <div className={`text-sm ${baselineFrame ? 'text-green-400' : 'text-gray-500'}`}>
-                    {currentFrame.measurements.distance_ratio ? (
-                      baselineFrame && baselineFrame.measurements.distance_ratio ? 
-                        formatPercentageChange(calculatePercentageChange(
-                          currentFrame.measurements.distance_ratio.ratio_percentage, 
-                          baselineFrame.measurements.distance_ratio.ratio_percentage
-                        )) : 
-                        (currentFrame.isBaseline ? '0.0%' : 'No baseline set')
-                    ) : 'Not measured'}
+                  <div>
+                    <div className={`text-xs transition-colors duration-300 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>Angle B</div>
+                    {renderValueWithBaseline(currentFrameData.measurements?.angle_b, '°', 'angle_b')}
                   </div>
                 </div>
               </div>
@@ -306,21 +350,27 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
             {onSetBaseline && (
               <button
                 onClick={handleSetBaseline}
-                disabled={currentFrame.isBaseline}
+                disabled={isBaseline}
                 className={`text-sm cursor-pointer transition-colors duration-200 px-3 py-2 rounded-lg border-none ${
-                  currentFrame.isBaseline
-                    ? 'bg-yellow-500/20 text-yellow-400 cursor-not-allowed'
+                  isBaseline
+                    ? isDarkMode 
+                      ? 'bg-yellow-500/20 text-yellow-200 cursor-not-allowed'
+                      : 'bg-yellow-500/20 text-yellow-800 cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
               >
-                {currentFrame.isBaseline ? 'Current Baseline' : 'Set as Baseline'}
+                {isBaseline ? 'Current Baseline' : 'Set as Baseline'}
               </button>
             )}
             
             {/* Close button - Bottom right */}
             <button
               onClick={onClose}
-              className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-4 py-2 text-sm cursor-pointer transition-colors duration-200 ml-auto"
+              className={`border-none rounded-lg px-4 py-2 text-sm cursor-pointer transition-colors duration-200 ml-auto ${
+                isDarkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                  : 'bg-gray-300 hover:bg-gray-400 text-gray-900'
+              }`}
             >
               Close
             </button>
@@ -328,11 +378,11 @@ const FrameDetailsPopup: React.FC<FrameDetailsPopupProps> = ({
         </div>
       </div>
 
-      {/* Use the ConfirmationPopup component instead of custom delete confirmation */}
+      {/* Delete Confirmation */}
       <ConfirmationPopup
         isOpen={showDeleteConfirmation}
         title="Delete Frame"
-        message={`Are you sure you want to delete "${currentFrame?.customName || currentFrame?.name}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete "${currentFrameData?.custom_name || `Frame ${currentFrameData?.frame_idx}`}"? This action cannot be undone.`}
         confirmButtonText="Delete"
         cancelButtonText="Cancel"
         onConfirm={handleConfirmDelete}

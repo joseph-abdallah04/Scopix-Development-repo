@@ -7,12 +7,15 @@ import TimelineScrubber from '../components/TimelineScrubber';
 import FrameInfoDisplay from '../components/FrameInfoDisplay';
 import ConfirmationPopup from '../components/ConfirmationPopup';
 import { useExport } from '../hooks/useExport';
+import { useTheme } from '../contexts/theme-context'; 
+
 
 interface VideoAnalysisPageProps {
   file?: File | null;
   onBack?: () => void;
 }
 
+// Simplified SavedFrame interface with only the new measurement system
 interface SavedFrame {
   id: string;
   name: string;
@@ -22,17 +25,43 @@ interface SavedFrame {
   thumbnailUrl?: string;
   isBaseline: boolean;
   measurements: {
-    glottic_angle: number | null;
-    supraglottic_angle: number | null;
-    glottic_area: number | null;
-    supraglottic_area: number | null;
-    // Add other measurement properties as needed
+    // New measurement fields only
+    angle_a?: number | null;
+    angle_b?: number | null;
+    area_a?: number | null;
+    area_b?: number | null;
+    area_av?: number | null;
+    area_bv?: number | null;
+    distance_a?: number | null;
+    distance_c?: number | null;
+    distance_g?: number | null;
+    distance_h?: number | null;
   };
+  // Calculated formulas
+  formulas?: {
+    p_factor?: number;
+    c_factor?: number;
+    distance_ratio_1?: number;
+    distance_ratio_2?: number;
+    distance_ratio_3?: number;
+    distance_ratio_4?: number;
+  };
+}
+
+interface FrameMetadata {
+  frame_id: string;
+  frame_idx: number;
+  timestamp: number;
+  custom_name?: string;
+  created_at: string;
+  thumbnail_url: string;
+  isBaseline: boolean;
 }
 
 function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
   
   // Get session info from upload or check if session exists
   // const sessionInfo = location.state?.sessionInfo;
@@ -54,11 +83,11 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
   
   // Session-based state
   const [hasActiveSession, setHasActiveSession] = useState(false);
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [, setSessionData] = useState<any>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   
   // State for saved frames
-  const [savedFrames, setSavedFrames] = useState<SavedFrame[]>([]);
+  const [, setSavedFrames] = useState<SavedFrame[]>([]);
   const [lastPositionUpdate, setLastPositionUpdate] = useState(0);
   const [showBackConfirmation, setShowBackConfirmation] = useState(false);
 
@@ -68,6 +97,10 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
 
   // Add backend frame count state
   const [backendFrameCount, setBackendFrameCount] = useState<number | null>(null);
+
+  // Add the missing state variables after the other state declarations (around line 76)
+  const [frameMetadata, setFrameMetadata] = useState<FrameMetadata[]>([]);
+  const [baselineFrameId, setBaselineFrameId] = useState<string | null>(null);
 
   // Calculate frame duration and total frames
   // const frameDuration = 1 / fps;
@@ -114,10 +147,12 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
           // If we have a session, we can load the video from the backend
           if (session.video_path) {
             console.log('Setting up video stream URL...');
-            const videoStreamUrl = `http://localhost:8000/session/video-file`;
+            // Add timestamp to force cache invalidation
+            const cacheTimestamp = Date.now();
+            const videoStreamUrl = `http://localhost:8000/session/video-file?t=${cacheTimestamp}`;
             setVideoUrl(videoStreamUrl);
             
-            // Store position to restore later when video loads - but don't override resume state
+            // Store position to restore later...
             if (session.current_timestamp !== undefined && resumeAtTimestamp === undefined) {
               console.log(`Will restore session position: ${session.current_timestamp}s, frame ${session.current_frame_idx}`);
               setCurrentTime(session.current_timestamp);
@@ -155,92 +190,36 @@ function VideoAnalysis({ file: propFile, onBack }: VideoAnalysisPageProps) {
     if (!hasActiveSession) return;
     
     try {
-      console.log('Loading measured frames from backend...');
+      console.log('Loading frame metadata from backend...');
       const response = await fetch('http://localhost:8000/session/measured-frames');
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Measured frames loaded:', data);
+        console.log('Frame metadata loaded:', data);
         
-        // Convert backend frame data to frontend format with proper measurement mapping
-        const convertedFrames = data.measured_frames.map((frame: any) => {
-          console.log('Processing frame measurements:', frame.measurements);
-          
-          // Extract measurements correctly from the backend format
-          const measurements = {
-            // For angles, we need to access the angle property
-            glottic_angle: frame.measurements?.glottic?.angle !== undefined 
-              ? frame.measurements.glottic.angle 
-              : null,
-            supraglottic_angle: frame.measurements?.supraglottic?.angle !== undefined 
-              ? frame.measurements.supraglottic.angle 
-              : null,
-            
-            // For areas, we need to access the area_pixels property
-            glottic_area: frame.measurements?.glottic_area?.area_pixels !== undefined 
-              ? frame.measurements.glottic_area.area_pixels 
-              : null,
-            supraglottic_area: frame.measurements?.supraglottic_area?.area_pixels !== undefined 
-              ? frame.measurements.supraglottic_area.area_pixels 
-              : null,
-            
-            // Add distance ratio - keep the full object structure
-            distance_ratio: frame.measurements?.distance_ratio ? {
-              horizontal_distance: frame.measurements.distance_ratio.horizontal_distance,
-              vertical_distance: frame.measurements.distance_ratio.vertical_distance,
-              ratio_percentage: frame.measurements.distance_ratio.ratio_percentage,
-              horizontal_points: frame.measurements.distance_ratio.horizontal_points,
-              vertical_points: frame.measurements.distance_ratio.vertical_points
-            } : null
-          };
-          
-          console.log('Converted measurements:', measurements);
-          
-          return {
-            id: frame.frame_id,
-            name: `Frame ${frame.frame_idx}`,
-            customName: frame.custom_name,
-            timestamp: frame.timestamp,
-            frameIdx: frame.frame_idx,
-            thumbnailUrl: `http://localhost:8000/session/frame-thumbnail/${frame.frame_id}`,
-            isBaseline: frame.frame_id === data.baseline_frame_id,
-            measurements: measurements
-          };
-        });
+        // Convert to frontend format with baseline status
+        const convertedMetadata = data.frame_metadata.map((frame: any) => ({
+          frame_id: frame.frame_id,
+          frame_idx: frame.frame_idx,
+          timestamp: frame.timestamp,
+          custom_name: frame.custom_name,
+          created_at: frame.created_at,
+          thumbnail_url: `http://localhost:8000${frame.thumbnail_url}`,
+          isBaseline: frame.frame_id === data.baseline_frame_id
+        }));
         
-        setSavedFrames(convertedFrames);
-        console.log('Converted frames:', convertedFrames);
-      } else {
-        console.log('No measured frames found or error loading frames');
+        setFrameMetadata(convertedMetadata);
+        setBaselineFrameId(data.baseline_frame_id);
+        console.log('Frame metadata set:', convertedMetadata);
       }
     } catch (error) {
-      console.error('Error loading measured frames:', error);
+      console.error('Error loading frame metadata:', error);
     }
   };
 
   // Load frames when component mounts or when returning from manual measurement
   loadMeasuredFrames();
 }, [hasActiveSession, location.state?.frameSaved]);
-
-  // Set up video source when we have a video URL (from session)
-  useEffect(() => {
-    if (videoUrl && videoRef.current) {
-      // Instead of streaming, load the video directly
-      videoRef.current.src = videoUrl;
-      videoRef.current.load();
-      
-      // Optionally preload the entire video for instant scrubbing
-      videoRef.current.preload = "auto"; // or "metadata" for faster initial load
-    } else if (uploadedFile && videoRef.current && !hasActiveSession) {
-      // Fallback: use uploaded file if no session (shouldn't normally happen)
-      const url = URL.createObjectURL(uploadedFile);
-      videoRef.current.src = url;
-      // ✅ ADD THIS LINE: Set crossOrigin for local files too
-      videoRef.current.crossOrigin = "anonymous";
-      videoRef.current.load();
-      return () => URL.revokeObjectURL(url);
-    }
-  }, [videoUrl, uploadedFile, hasActiveSession, sessionData]);
 
   // Resume to specific frame when coming back from manual measurement
   useEffect(() => {
@@ -604,9 +583,12 @@ const handleLoadedMetadata = useCallback(async () => {
         return;
       }
 
-      // Get the EXACT video position at capture time
-      const actualTime = videoRef.current.currentTime;
-      const actualFrameIdx = timeToFrame(actualTime);
+      // Use the state values for consistency with displayed values
+      const actualTime = currentTime;
+      const actualFrameIdx = currentFrameIdx;
+
+      // Ensure video is at the correct position before capturing
+      videoRef.current.currentTime = actualTime;
 
       // Create a temporary canvas to capture the current video frame
       const canvas = document.createElement('canvas');
@@ -637,7 +619,7 @@ const handleLoadedMetadata = useCallback(async () => {
         }
       }, 'image/png', 0.95);
     });
-  }, [timeToFrame]);
+  }, [currentTime, currentFrameIdx]); // Add dependencies
 
   // Update handleMeasureFrame to use canvas capture
   const handleMeasureFrame = async () => {
@@ -769,6 +751,18 @@ const handleLoadedMetadata = useCallback(async () => {
   };
 
   const handleRenameFrame = async (frameId: string, newName: string) => {
+    // Validate name length
+    const trimmedName = newName.trim();
+    if (trimmedName.length === 0) {
+      alert('Frame name cannot be empty');
+      return;
+    }
+    
+    if (trimmedName.length > 20) {
+      alert('Frame name cannot exceed 20 characters');
+      return;
+    }
+    
     try {
       const response = await fetch('http://localhost:8000/session/update-frame-name', {
         method: 'POST',
@@ -777,22 +771,25 @@ const handleLoadedMetadata = useCallback(async () => {
         },
         body: JSON.stringify({
           frame_id: frameId,
-          custom_name: newName
+          custom_name: trimmedName  // Use trimmed name
         })
       });
 
       if (response.ok) {
-        // Update local state
-        setSavedFrames(frames =>
+        // Update frameMetadata state instead of savedFrames
+        setFrameMetadata(frames =>
           frames.map(frame =>
-            frame.id === frameId ? { ...frame, customName: newName } : frame
+            frame.frame_id === frameId ? { ...frame, custom_name: trimmedName } : frame
           )
         );
+        console.log(`Frame ${frameId} renamed to "${trimmedName}"`);
       } else {
         console.error('Failed to update frame name');
+        alert('Failed to update frame name. Please try again.');
       }
     } catch (error) {
       console.error('Error updating frame name:', error);
+      alert('Failed to update frame name. Please try again.');
     }
   };
 
@@ -804,7 +801,7 @@ const handleLoadedMetadata = useCallback(async () => {
 
       if (response.ok) {
         // Update local state to remove the deleted frame
-        setSavedFrames(frames => frames.filter(frame => frame.id !== frameId));
+        setFrameMetadata(frames => frames.filter(frame => frame.frame_id !== frameId));
         console.log(`Frame ${frameId} deleted successfully`);
       } else {
         console.error('Failed to delete frame');
@@ -836,21 +833,25 @@ const handleLoadedMetadata = useCallback(async () => {
       });
 
       if (response.ok) {
-        // Update local state to reflect the new baseline
-        setSavedFrames(prevFrames => 
+        // Update the baseline frame ID state
+        setBaselineFrameId(frameId);
+        
+        // Update frame metadata to reflect the new baseline
+        setFrameMetadata(prevFrames => 
           prevFrames.map(frame => ({
             ...frame,
-            isBaseline: frame.id === frameId
+            isBaseline: frame.frame_id === frameId  // Use frame_id instead of id
           }))
         );
         
-        // Remove the workaround code - the popup will update automatically now
         console.log(`Frame ${frameId} set as baseline`);
       } else {
         console.error('Failed to set baseline frame');
+        alert('Failed to set baseline frame. Please try again.');
       }
     } catch (error) {
       console.error('Error setting baseline frame:', error);
+      alert('Failed to set baseline frame. Please try again.');
     }
   };
 
@@ -866,11 +867,16 @@ const handleLoadedMetadata = useCallback(async () => {
       
       const video = videoRef.current;
       
-      // Remove ALL possible event listeners
-      const events = ['timeupdate', 'loadedmetadata', 'play', 'pause', 'loadeddata', 'canplay', 'seeked', 'ended', 'error'];
-      events.forEach(event => {
-        video.removeEventListener(event, () => {});
-      });
+      // Remove all event listeners properly by setting to null
+      video.onloadedmetadata = null;
+      video.ontimeupdate = null;
+      video.onplay = null;
+      video.onpause = null;
+      video.onloadeddata = null;
+      video.oncanplay = null;
+      video.onseeked = null;
+      video.onended = null;
+      video.onerror = null;
       
       // Pause and reset video completely
       video.pause();
@@ -910,16 +916,16 @@ const handleLoadedMetadata = useCallback(async () => {
       
       const video = videoRef.current;
       
-      // Always clean up existing setup first
+      // Clean up existing setup first
       video.pause();
       video.currentTime = 0;
       video.removeAttribute('src');
       video.load(); // Clear any cached data
       
-      // Set new source
+      // Set new source with Electron-optimized settings
       video.src = videoUrl;
       video.crossOrigin = "anonymous";
-      video.preload = "auto";
+      video.preload = "auto"; // Safe to preload entire video in Electron
       video.load();
       
       // Add essential event listeners
@@ -928,12 +934,16 @@ const handleLoadedMetadata = useCallback(async () => {
         setDuration(video.duration || 0);
       };
       
+      // Update the video timeupdate handler to use the video element as the source of truth:
       const handleTimeUpdateLocal = () => {
         if (!isDragging) {
-          const newTime = video.currentTime;
-          const newFrameIdx = timeToFrame(newTime);
-          setCurrentTime(newTime);
-          setCurrentFrameIdx(newFrameIdx);
+          // Use the video element as the authoritative source
+          const actualTime = video.currentTime;
+          const actualFrameIdx = timeToFrame(actualTime);
+          
+          // Update state to match the actual video position
+          setCurrentTime(actualTime);
+          setCurrentFrameIdx(actualFrameIdx);
         }
       };
       
@@ -1012,14 +1022,10 @@ const handleLoadedMetadata = useCallback(async () => {
   // Updated export handler
   const handleExport = async () => {
     try {
-      console.log('Starting export...', savedFrames);
+      console.log('Starting export...', frameMetadata);
 
-      // Find baseline frame ID
-      const baselineFrame = savedFrames.find(frame => frame.isBaseline);
-      const baselineFrameId = baselineFrame?.id;
-
-      // Attempt to export
-      const success = await exportResults(savedFrames, baselineFrameId);
+      // Use the baseline frame ID from state, converting null to undefined
+      const success = await exportResults(frameMetadata, baselineFrameId || undefined);
 
       if (success) {
         // Clean up video element BEFORE clearing session
@@ -1042,12 +1048,20 @@ const handleLoadedMetadata = useCallback(async () => {
     if (!exportError) return null;
 
     return (
-      <div className="fixed top-4 right-4 bg-red-600 text-white p-4 rounded-lg shadow-lg z-50">
+      <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-red-600 text-white' 
+          : 'bg-red-100 text-red-800 border border-red-300'
+      }`}>
         <div className="flex items-center gap-2">
           <span>Export failed: {exportError}</span>
           <button 
             onClick={clearExportError}
-            className="ml-2 text-white hover:text-gray-200"
+            className={`ml-2 transition-colors duration-200 ${
+              isDarkMode 
+                ? 'text-white hover:text-gray-200' 
+                : 'text-red-600 hover:text-red-800'
+            }`}
           >
             ×
           </button>
@@ -1059,12 +1073,18 @@ const handleLoadedMetadata = useCallback(async () => {
   // Check if we have either a session or uploaded file
   if (!hasActiveSession && !uploadedFile) {
     return (
-      <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className={`w-screen h-screen min-h-screen flex flex-col overflow-hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+      }`}>
         <div className="flex-1 flex flex-col items-center justify-center p-8">
           <p className="text-xl mb-6">No video session available</p>
           <button 
             onClick={handleBack} 
-            className="bg-gray-700 hover:bg-gray-600 text-white border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2"
+            className={`border-none rounded-lg px-6 py-3 text-base cursor-pointer transition-colors duration-200 flex items-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+            }`}
           >
             <GoArrowLeft />
             Back to Upload
@@ -1077,7 +1097,9 @@ const handleLoadedMetadata = useCallback(async () => {
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="w-screen h-screen min-h-screen bg-black text-white flex flex-col p-4 box-border overflow-hidden">
+    <div className={`w-screen h-screen min-h-screen flex flex-col p-4 box-border overflow-hidden transition-colors duration-300 ${
+      isDarkMode ? 'bg-black text-white' : 'bg-white text-gray-900'
+    }`}>
       {renderExportError()}
       
       <div className="flex-1 flex flex-col max-w-full h-screen overflow-hidden relative">
@@ -1086,14 +1108,18 @@ const handleLoadedMetadata = useCallback(async () => {
           
           {/* Left Column - Saved Frames List */}
           <SavedFrames
-            savedFrames={savedFrames}
-            onBack={handleBack}
+            frameMetadata={frameMetadata}
+            baselineFrameId={baselineFrameId}
+            showBackButton={true}
+            backButtonText="Back to Video Upload"
+            onBack={() => navigate('/video-upload')} // Navigate to upload page after session is cleared
             onExport={handleExport}
-            isExporting={isExporting} // Add this prop
             formatTime={formatTime}
+            showExportButton={true}
             onRenameFrame={handleRenameFrame}
             onSetBaseline={handleSetBaseline}
-            onDeleteFrame={handleDeleteFrame} // Add this back
+            onDeleteFrame={handleDeleteFrame}
+            isExporting={isExporting}
             currentFrameIdx={currentFrameIdx}
             totalFrames={totalFrames}
             fps={fps}

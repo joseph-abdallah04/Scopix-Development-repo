@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import { useTheme } from '../contexts/theme-context';
 
 interface VideoPlayerProps {
   onTimeUpdate: () => void;
@@ -7,8 +8,14 @@ interface VideoPlayerProps {
 
 const VideoPlayer = forwardRef<HTMLVideoElement, VideoPlayerProps>(
   ({ onTimeUpdate, onLoadedMetadata }, ref) => {
+    const { isDarkMode } = useTheme();
+    
     return (
-      <div className="flex-1 flex items-center justify-center bg-zinc-900 rounded-xl border border-gray-700 p-1 overflow-hidden">
+      <div className={`flex-1 flex items-center justify-center rounded-xl border p-1 overflow-hidden transition-colors duration-200 ${
+        isDarkMode 
+          ? 'bg-zinc-900 border-gray-700' 
+          : 'bg-gray-300 border-gray-500'
+      }`}>
         <video
           ref={ref}
           onTimeUpdate={onTimeUpdate}
