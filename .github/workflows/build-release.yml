@@ -138,20 +138,27 @@ jobs:
             }));
 
       - name: Create Release in Public Repository
-        uses: softprops/action-gh-release@v2
+        uses: actions/github-script@v7
         with:
-          repository: joseph-abdallah04/Scopix
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## Scopix Desktop Application - ${{ github.ref_name }}
+          github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Create the release first
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: 'joseph-abdallah04',
+              repo: 'Scopix',
+              tag_name: '${{ github.ref_name }}',
+              name: 'Release ${{ github.ref_name }}',
+              body: `## Scopix Desktop Application - ${{ github.ref_name }}
             
             **For speech pathologists and medical professionals researching Inducible Laryngeal Obstruction (ILO)**
             
             ### Downloads Available:
-            - **Windows**: `.exe` installer
-            - **Linux**: `.AppImage` portable application
-            - **macOS**: `.dmg` installer (if available)
+            - **Windows**: \`.exe\` installer
+            - **Linux**: \`.AppImage\` portable application
+            - **macOS**: \`.dmg\` installer (if available)
             
             ### Before Installing:
             1. **Review the [End User License Agreement (EULA)](https://github.com/joseph-abdallah04/Scopix/blob/main/EULA.md)**
@@ -161,47 +168,43 @@ jobs:
             By downloading and using Scopix, you agree to the terms outlined in the EULA.
             
             ### Medical Disclaimer
-            Scopix is intended as a tool for research and professional use by qualified medical practitioners. It is **not** a substitute for professional medical judgment, diagnosis, or treatment.
-          files: |
-            *.dmg
-            *.exe
-            *.AppImage
-        env:
-          GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-
-      - name: Remove Source Code Assets
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
-          script: |
-            // Wait a bit for GitHub to process the release
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            
-            const { data: release } = await github.rest.repos.getReleaseByTag({
-              owner: 'joseph-abdallah04',
-              repo: 'Scopix',
-              tag: '${{ github.ref_name }}'
+            Scopix is intended as a tool for research and professional use by qualified medical practitioners. It is **not** a substitute for professional medical judgment, diagnosis, or treatment.`,
+              draft: false,
+              prerelease: false
             });
             
-            console.log(`Found release: ${release.name}`);
-            console.log(`Assets found: ${release.assets.length}`);
+            console.log(`Created release: ${release.html_url}`);
             
-            // Find and delete source code assets
-            for (const asset of release.assets) {
-              console.log(`Checking asset: ${asset.name}`);
-              if (asset.name.toLowerCase().includes('source code') || 
-                  (asset.name.endsWith('.zip') && asset.name !== 'Scopix.Setup.1.0.0.exe') ||
-                  asset.name.endsWith('.tar.gz')) {
-                console.log(`Deleting source code asset: ${asset.name}`);
-                try {
-                  await github.rest.repos.deleteReleaseAsset({
-                    owner: 'joseph-abdallah04',
-                    repo: 'Scopix',
-                    asset_id: asset.id
-                  });
-                  console.log(`Successfully deleted: ${asset.name}`);
-                } catch (error) {
-                  console.error(`Failed to delete ${asset.name}:`, error.message);
+            // Upload only our specific files
+            const filesToUpload = [
+              { pattern: '*.dmg', name: 'macOS Installer' },
+              { pattern: '*.exe', name: 'Windows Installer' },
+              { pattern: '*.AppImage', name: 'Linux AppImage' }
+            ];
+            
+            const { execSync } = require('child_process');
+            
+            for (const fileType of filesToUpload) {
+              try {
+                const files = execSync(`find . -name "${fileType.pattern}" -type f`, { encoding: 'utf8' }).trim().split('\n').filter(f => f);
+                for (const filePath of files) {
+                  if (fs.existsSync(filePath)) {
+                    console.log(`Uploading ${filePath}...`);
+                    const fileContent = fs.readFileSync(filePath);
+                    const fileName = path.basename(filePath);
+                    
+                    await github.rest.repos.uploadReleaseAsset({
+                      owner: 'joseph-abdallah04',
+                      repo: 'Scopix',
+                      release_id: release.id,
+                      name: fileName,
+                      data: fileContent
+                    });
+                    
+                    console.log(`Successfully uploaded ${fileName}`);
+                  }
                 }
+              } catch (error) {
+                console.log(`No ${fileType.pattern} files found or error: ${error.message}`);
               }
             }
