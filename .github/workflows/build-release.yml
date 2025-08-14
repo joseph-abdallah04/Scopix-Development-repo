@@ -109,8 +109,8 @@ jobs:
           # Platform-specific file collection (only final installers)
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             echo "Looking for Windows installer..."
-            # Look specifically for the setup exe in the dist folder, not any exe
-            find front_end/dist -name "*Setup*.exe" -o -name "*setup*.exe" -o -name "*Setup.exe" -o -name "*-win*.exe" | head -1 | while read -r file; do
+            # Look for Scopix.Setup.*.exe pattern
+            find front_end/dist -name "Scopix.Setup.*.exe" -o -name "Scopix-Setup-*.exe" | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found Windows installer: $file"
                 cp "$file" "./release-files/"
@@ -119,8 +119,8 @@ jobs:
             
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             echo "Looking for macOS installer..."
-            # Look for dmg files in dist folder
-            find front_end/dist -name "*.dmg" | head -1 | while read -r file; do
+            # Look for Scopix-*.dmg pattern (including arm64 and x64 variants)
+            find front_end/dist -name "Scopix-*.dmg" | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found macOS installer: $file"
                 cp "$file" "./release-files/"
@@ -129,8 +129,8 @@ jobs:
             
           elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             echo "Looking for Linux installer..."
-            # Look for AppImage files in dist folder
-            find front_end/dist -name "*.AppImage" | head -1 | while read -r file; do
+            # Look for Scopix-*.AppImage pattern
+            find front_end/dist -name "Scopix-*.AppImage" | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found Linux installer: $file"
                 cp "$file" "./release-files/"
