@@ -103,14 +103,30 @@ jobs:
         run: |
           echo "=== Finding release files on ${{ matrix.os }} ==="
           
+          # Debug: Let's see what directories exist
+          echo "=== Debug: Checking directory structure ==="
+          echo "Current directory contents:"
+          ls -la
+          echo ""
+          echo "Front-end directory contents:"
+          ls -la front_end/ || echo "front_end directory not accessible"
+          echo ""
+          echo "Looking for any dist or release directories:"
+          find front_end -type d -name "*dist*" -o -name "*release*" -o -name "*build*" 2>/dev/null || echo "No build directories found in front_end"
+          echo ""
+          echo "Looking for installer files anywhere in front_end:"
+          find front_end -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" 2>/dev/null || echo "No installer files found"
+          
           # Create a temp directory for files to upload
           mkdir -p ./release-files
           
-          # Platform-specific file collection (only final installers)
+          # Let's search more broadly for the installer files
+          echo "=== Searching for installer files ==="
+          
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             echo "Looking for Windows installer..."
-            # Look for Scopix.Setup.*.exe pattern
-            find front_end/dist -name "Scopix.Setup.*.exe" -o -name "Scopix-Setup-*.exe" | head -1 | while read -r file; do
+            # Search more broadly in front_end directory
+            find front_end -name "Scopix.Setup.*.exe" -o -name "Scopix-Setup-*.exe" -o -name "*Setup*.exe" 2>/dev/null | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found Windows installer: $file"
                 cp "$file" "./release-files/"
@@ -119,8 +135,8 @@ jobs:
             
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             echo "Looking for macOS installer..."
-            # Look for Scopix-*.dmg pattern (including arm64 and x64 variants)
-            find front_end/dist -name "Scopix-*.dmg" | head -1 | while read -r file; do
+            # Search more broadly in front_end directory
+            find front_end -name "Scopix-*.dmg" -o -name "*.dmg" 2>/dev/null | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found macOS installer: $file"
                 cp "$file" "./release-files/"
@@ -129,8 +145,8 @@ jobs:
             
           elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             echo "Looking for Linux installer..."
-            # Look for Scopix-*.AppImage pattern
-            find front_end/dist -name "Scopix-*.AppImage" | head -1 | while read -r file; do
+            # Search more broadly in front_end directory
+            find front_end -name "Scopix-*.AppImage" -o -name "*.AppImage" 2>/dev/null | head -1 | while read -r file; do
               if [ -f "$file" ]; then
                 echo "Found Linux installer: $file"
                 cp "$file" "./release-files/"
@@ -150,6 +166,9 @@ jobs:
             echo "has_files=true" >> $GITHUB_OUTPUT
           else
             echo "has_files=false" >> $GITHUB_OUTPUT
+            echo "=== Additional Debug Info ==="
+            echo "Complete front_end directory tree:"
+            find front_end -type f -name "*" 2>/dev/null | head -20
           fi
         id: prepare_files
 
