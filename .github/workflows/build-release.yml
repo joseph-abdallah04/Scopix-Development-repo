@@ -77,36 +77,25 @@ jobs:
         run: |
           echo "=== Debug: Finding all built files ==="
           echo "Working directory contents:"
-          ls -la .
+          node -e "require('fs').readdirSync('.', {withFileTypes:true}).forEach(e=>console.log(e.isDirectory()?'[D]':'[F]',e.name))"
           echo ""
           echo "Frontend directory contents:"
-          if [ -d "front_end" ]; then
-            ls -la front_end/
-          else
-            echo "front_end directory not found"
-          fi
+          node -e "try { require('fs').readdirSync('front_end', {withFileTypes:true}).forEach(e=>console.log(e.isDirectory()?'[D]':'[F]',e.name)) } catch(e) { console.log('front_end directory not found') }"
           echo ""
           echo "Looking for dist directories:"
-          find . -name "dist" -type d 2>/dev/null || echo "No dist directories found"
+          node -e "const fs=require('fs');const path=require('path');function findDirs(dir,target){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isDirectory()){if(item.name===target)console.log(fullPath);findDirs(fullPath,target)}})}catch(e){}}findDirs('.','dist')"
           echo ""
-          echo "Looking for release directories:" 
-          find . -name "release" -type d 2>/dev/null || echo "No release directories found"
+          echo "Looking for release directories:"
+          node -e "const fs=require('fs');const path=require('path');function findDirs(dir,target){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isDirectory()){if(item.name===target)console.log(fullPath);findDirs(fullPath,target)}})}catch(e){}}findDirs('.','release')"
           echo ""
           echo "All .dmg files:"
-          find . -name "*.dmg" -type f 2>/dev/null || echo "No .dmg files found"
+          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.dmg')"
           echo ""
           echo "All .exe files:"
-          find . -name "*.exe" -type f 2>/dev/null || echo "No .exe files found"
+          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.exe')"
           echo ""
           echo "All .AppImage files:"
-          find . -name "*.AppImage" -type f 2>/dev/null || echo "No .AppImage files found"
-          echo ""
-          echo "All executable files in front_end (if exists):"
-          if [ -d "front_end" ]; then
-            find front_end/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) 2>/dev/null || echo "No executables found in front_end"
-          else
-            echo "front_end directory doesn't exist"
-          fi
+          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.AppImage')"
 
       - name: Upload to Private Repo Release
         uses: softprops/action-gh-release@v2
