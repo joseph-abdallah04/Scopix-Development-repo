@@ -95,7 +95,7 @@ jobs:
             console.log(`Starting source code removal for ${owner}/${repo} tag ${tag}`);
             
             // Wait a moment for GitHub to fully process the release
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 10000));
             
             try {
               // Get the release we just created
@@ -107,47 +107,38 @@ jobs:
               
               console.log(`Found private release: ${release.name} (ID: ${release.id}) with ${release.assets.length} assets`);
               
-              // List all assets first
+              // List ALL assets with detailed info
+              console.log('=== ALL ASSETS FOUND BY API ===');
               for (const asset of release.assets) {
-                console.log(`Private Asset: ${asset.name} (ID: ${asset.id}, Created: ${asset.created_at})`);
+                console.log(`Asset: "${asset.name}"`);
+                console.log(`  - ID: ${asset.id}`);
+                console.log(`  - Size: ${asset.size}`);
+                console.log(`  - Content Type: ${asset.content_type}`);
+                console.log(`  - Download URL: ${asset.browser_download_url}`);
+                console.log(`  - Created: ${asset.created_at}`);
+                console.log(`  - Updated: ${asset.updated_at}`);
+                console.log('---');
               }
               
-              // Find and delete source code assets
-              let deletedCount = 0;
-              for (const asset of release.assets) {
-                // GitHub automatically creates these source code archives
-                if (asset.name.endsWith('.zip') || asset.name.endsWith('.tar.gz')) {
-                  console.log(`Deleting private source code asset: ${asset.name} (ID: ${asset.id})`);
-                  try {
-                    await github.rest.repos.deleteReleaseAsset({
-                      owner,
-                      repo,
-                      asset_id: asset.id
-                    });
-                    console.log(`Successfully deleted private ${asset.name}`);
-                    deletedCount++;
-                  } catch (deleteError) {
-                    console.error(`Failed to delete private ${asset.name}: ${deleteError.message}`);
-                  }
-                } else {
-                  console.log(`Keeping private installer asset: ${asset.name}`);
-                }
+              // Also try to get source code downloads directly
+              console.log('=== CHECKING FOR SOURCE CODE DOWNLOADS ===');
+              try {
+                const sourceCodeZip = `${release.zipball_url}`;
+                const sourceCodeTar = `${release.tarball_url}`;
+                console.log(`Zip URL: ${sourceCodeZip}`);
+                console.log(`Tar URL: ${sourceCodeTar}`);
+              } catch (e) {
+                console.log('Could not get source code URLs');
               }
               
-              console.log(`Deleted ${deletedCount} private source code assets`);
-              
-              // Verify deletion worked
-              const { data: updatedRelease } = await github.rest.repos.getReleaseByTag({
-                owner,
-                repo,
-                tag
-              });
-              console.log(`After private deletion: ${updatedRelease.assets.length} assets remaining`);
+              // Try alternative approach - get all release data
+              console.log('=== FULL RELEASE DATA ===');
+              console.log(`Zipball URL: ${release.zipball_url}`);
+              console.log(`Tarball URL: ${release.tarball_url}`);
               
             } catch (error) {
               console.error(`Error in private source code removal: ${error.message}`);
               console.error(`Full error:`, error);
-              // Don't throw error - let workflow continue
             }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
