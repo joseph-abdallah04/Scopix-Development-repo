@@ -72,16 +72,46 @@ jobs:
         run: |
           pnpm dist
 
+      - name: List built files (debug)
+        run: |
+          echo "Contents of front_end/dist:"
+          ls -la front_end/dist/ || echo "dist directory not found"
+          echo "Contents of front_end/release:"
+          ls -la front_end/release/ || echo "release directory not found"
+          echo "All .dmg files:"
+          find . -name "*.dmg" -type f || echo "No .dmg files found"
+          echo "All .exe files:"
+          find . -name "*.exe" -type f || echo "No .exe files found"
+          echo "All .AppImage files:"
+          find . -name "*.AppImage" -type f || echo "No .AppImage files found"
+
       - name: Upload to Private Repo Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
+            front_end/dist/*.dmg
+            front_end/dist/*.exe  
+            front_end/dist/*.AppImage
             front_end/release/*.dmg
             front_end/release/*.exe
             front_end/release/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts for next job
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-app-${{ matrix.os }}
+          path: |
+            front_end/dist/*.dmg
+            front_end/dist/*.exe
+            front_end/dist/*.AppImage
+            front_end/release/*.dmg
+            front_end/release/*.exe
+            front_end/release/*.AppImage
+          retention-days: 1
+          if-no-files-found: warn
 
   publish-to-public:
     name: Publish to Public Repository
@@ -93,49 +123,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download release assets
-        uses: actions/github-script@v7
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          script: |
-            const fs = require('fs');
-            const { owner, repo } = context.repo;
-            
-            // Get the release that was just created
-            const releases = await github.rest.repos.listReleases({
-              owner,
-              repo,
-              per_page: 1
-            });
-            
-            if (releases.data.length === 0) {
-              throw new Error('No releases found');
-            }
-            
-            const release = releases.data[0];
-            console.log(`Found release: ${release.tag_name}`);
-            
-            // Download all assets
-            for (const asset of release.assets) {
-              console.log(`Downloading ${asset.name}...`);
-              const response = await github.rest.repos.getReleaseAsset({
-                owner,
-                repo,
-                asset_id: asset.id,
-                headers: {
-                  Accept: 'application/octet-stream'
-                }
-              });
-              
-              fs.writeFileSync(asset.name, Buffer.from(response.data));
-            }
-            
-            // Store release info for next step
-            fs.writeFileSync('release-info.json', JSON.stringify({
-              tag_name: release.tag_name,
-              name: release.name,
-              body: release.body,
-              assets: release.assets.map(a => a.name)
-            }));
+          merge-multiple: true
+          path: ./artifacts
+
+      - name: List downloaded files (debug)
+        run: |
+          echo "Downloaded artifacts:"
+          find ./artifacts -type f -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" | sort
 
       - name: Create Release in Public Repository
         uses: actions/github-script@v7
@@ -144,6 +141,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+            const { execSync } = require('child_process');
             
             // Create the release first
             const { data: release } = await github.rest.repos.createRelease({
@@ -175,18 +173,16 @@ jobs:
             
             console.log(`Created release: ${release.html_url}`);
             
-            // Upload only our specific files
-            const filesToUpload = [
-              { pattern: '*.dmg', name: 'macOS Installer' },
-              { pattern: '*.exe', name: 'Windows Installer' },
-              { pattern: '*.AppImage', name: 'Linux AppImage' }
-            ];
+            // Find and upload only the built application files
+            const fileTypes = ['*.dmg', '*.exe', '*.AppImage'];
             
-            const { execSync } = require('child_process');
-            
-            for (const fileType of filesToUpload) {
+            for (const pattern of fileTypes) {
               try {
-                const files = execSync(`find . -name "${fileType.pattern}" -type f`, { encoding: 'utf8' }).trim().split('\n').filter(f => f);
+                const files = execSync(`find ./artifacts -name "${pattern}" -type f`, { encoding: 'utf8' })
+                  .trim()
+                  .split('\n')
+                  .filter(f => f && f.length > 0);
+                
                 for (const filePath of files) {
                   if (fs.existsSync(filePath)) {
                     console.log(`Uploading ${filePath}...`);
@@ -205,6 +201,6 @@ jobs:
                   }
                 }
               } catch (error) {
-                console.log(`No ${fileType.pattern} files found or error: ${error.message}`);
+                console.log(`No ${pattern} files found or error: ${error.message}`);
               }
             }
