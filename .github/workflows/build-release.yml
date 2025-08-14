@@ -83,66 +83,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Remove source code from release
-        if: startsWith(github.ref, 'refs/tags/')
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const tag = '${{ github.ref_name }}';
-            
-            console.log(`Starting source code removal for ${owner}/${repo} tag ${tag}`);
-            
-            // Wait a moment for GitHub to fully process the release
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            
-            try {
-              // Get the release we just created
-              const { data: release } = await github.rest.repos.getReleaseByTag({
-                owner,
-                repo,
-                tag
-              });
-              
-              console.log(`Found private release: ${release.name} (ID: ${release.id}) with ${release.assets.length} assets`);
-              
-              // List ALL assets with detailed info
-              console.log('=== ALL ASSETS FOUND BY API ===');
-              for (const asset of release.assets) {
-                console.log(`Asset: "${asset.name}"`);
-                console.log(`  - ID: ${asset.id}`);
-                console.log(`  - Size: ${asset.size}`);
-                console.log(`  - Content Type: ${asset.content_type}`);
-                console.log(`  - Download URL: ${asset.browser_download_url}`);
-                console.log(`  - Created: ${asset.created_at}`);
-                console.log(`  - Updated: ${asset.updated_at}`);
-                console.log('---');
-              }
-              
-              // Also try to get source code downloads directly
-              console.log('=== CHECKING FOR SOURCE CODE DOWNLOADS ===');
-              try {
-                const sourceCodeZip = `${release.zipball_url}`;
-                const sourceCodeTar = `${release.tarball_url}`;
-                console.log(`Zip URL: ${sourceCodeZip}`);
-                console.log(`Tar URL: ${sourceCodeTar}`);
-              } catch (e) {
-                console.log('Could not get source code URLs');
-              }
-              
-              // Try alternative approach - get all release data
-              console.log('=== FULL RELEASE DATA ===');
-              console.log(`Zipball URL: ${release.zipball_url}`);
-              console.log(`Tarball URL: ${release.tarball_url}`);
-              
-            } catch (error) {
-              console.error(`Error in private source code removal: ${error.message}`);
-              console.error(`Full error:`, error);
-            }
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   publish-to-public:
     name: Publish to Public Repository
     needs: build
@@ -228,35 +168,3 @@ jobs:
             *.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
-
-      - name: Remove source code from public release
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
-          script: |
-            const tag = '${{ github.ref_name }}';
-            
-            // Get the release we just created in the public repo
-            const { data: release } = await github.rest.repos.getReleaseByTag({
-              owner: 'joseph-abdallah04',
-              repo: 'Scopix',
-              tag
-            });
-            
-            console.log(`Found public release: ${release.name} with ${release.assets.length} assets`);
-            
-            // Find and delete source code assets
-            for (const asset of release.assets) {
-              // GitHub automatically creates these source code archives
-              if (asset.name.endsWith('.zip') || asset.name.endsWith('.tar.gz')) {
-                console.log(`Deleting source code asset: ${asset.name}`);
-                await github.rest.repos.deleteReleaseAsset({
-                  owner: 'joseph-abdallah04',
-                  repo: 'Scopix',
-                  asset_id: asset.id
-                });
-                console.log(`Successfully deleted ${asset.name}`);
-              } else {
-                console.log(`Keeping installer asset: ${asset.name}`);
-              }
-            }
