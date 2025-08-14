@@ -168,3 +168,26 @@ jobs:
             *.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+
+      - name: Remove Source Code Assets
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
+          script: |
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner: 'joseph-abdallah04',
+              repo: 'Scopix',
+              tag: '${{ github.ref_name }}'
+            });
+            
+            // Find and delete source code assets
+            for (const asset of release.assets) {
+              if (asset.name.includes('Source code') || asset.name.endsWith('.zip') || asset.name.endsWith('.tar.gz')) {
+                console.log(`Deleting source code asset: ${asset.name}`);
+                await github.rest.repos.deleteReleaseAsset({
+                  owner: 'joseph-abdallah04',
+                  repo: 'Scopix',
+                  asset_id: asset.id
+                });
+              }
+            }
