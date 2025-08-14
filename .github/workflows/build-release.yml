@@ -74,28 +74,40 @@ jobs:
 
       - name: List built files (debug)
         run: |
-          echo "Contents of front_end/dist:"
-          ls -la front_end/dist/ || echo "dist directory not found"
-          echo "Contents of front_end/release:"
-          ls -la front_end/release/ || echo "release directory not found"
+          echo "=== Debug: Finding all built files ==="
+          echo "Working directory contents:"
+          ls -la
+          echo ""
+          echo "Frontend directory contents:"
+          ls -la front_end/ || echo "front_end directory not found"
+          echo ""
+          echo "Looking for dist directories:"
+          find . -name "dist" -type d
+          echo ""
+          echo "Looking for release directories:" 
+          find . -name "release" -type d
+          echo ""
           echo "All .dmg files:"
-          find . -name "*.dmg" -type f || echo "No .dmg files found"
+          find . -name "*.dmg" -type f
+          echo ""
           echo "All .exe files:"
-          find . -name "*.exe" -type f || echo "No .exe files found"
+          find . -name "*.exe" -type f  
+          echo ""
           echo "All .AppImage files:"
-          find . -name "*.AppImage" -type f || echo "No .AppImage files found"
+          find . -name "*.AppImage" -type f
+          echo ""
+          echo "All executable files in front_end:"
+          find front_end/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) 2>/dev/null || echo "No executables found in front_end"
 
       - name: Upload to Private Repo Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            front_end/dist/*.dmg
-            front_end/dist/*.exe  
-            front_end/dist/*.AppImage
-            front_end/release/*.dmg
-            front_end/release/*.exe
-            front_end/release/*.AppImage
+            **/*.dmg
+            **/*.exe  
+            **/*.AppImage
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -104,12 +116,9 @@ jobs:
         with:
           name: built-app-${{ matrix.os }}
           path: |
-            front_end/dist/*.dmg
-            front_end/dist/*.exe
-            front_end/dist/*.AppImage
-            front_end/release/*.dmg
-            front_end/release/*.exe
-            front_end/release/*.AppImage
+            **/*.dmg
+            **/*.exe
+            **/*.AppImage
           retention-days: 1
           if-no-files-found: warn
 
