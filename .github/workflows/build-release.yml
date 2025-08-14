@@ -97,26 +97,65 @@ jobs:
           echo "All .AppImage files:"
           node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.AppImage')"
 
-      - name: Upload to Private Repo Release
-        uses: softprops/action-gh-release@v2
+      - name: Find and prepare release files (Windows-specific fix)
         if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          echo "=== Finding release files on ${{ matrix.os }} ==="
+          
+          # Create a temp directory for files to upload
+          mkdir -p ./release-files
+          
+          # Function to copy found files
+          copy_if_exists() {
+            local pattern="$1"
+            local description="$2"
+            echo "Looking for $description files: $pattern"
+            
+            # Use find to locate files and copy them
+            find . -name "$pattern" -type f -not -path "./release-files/*" | while read -r file; do
+              if [ -f "$file" ]; then
+                echo "Found: $file"
+                cp "$file" "./release-files/"
+              fi
+            done
+          }
+          
+          # Find and copy all executable files
+          copy_if_exists "*.exe" "Windows executable"
+          copy_if_exists "*.dmg" "macOS disk image"  
+          copy_if_exists "*.AppImage" "Linux AppImage"
+          
+          # List what we found
+          echo "=== Files prepared for release ==="
+          ls -la ./release-files/ || echo "No files found"
+          
+          # Count files
+          FILE_COUNT=$(find ./release-files -type f | wc -l)
+          echo "Total files found: $FILE_COUNT"
+          
+          if [ "$FILE_COUNT" -gt 0 ]; then
+            echo "has_files=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_files=false" >> $GITHUB_OUTPUT
+          fi
+        id: prepare_files
+
+      - name: Upload to Private Repo Release  
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') && steps.prepare_files.outputs.has_files == 'true'
         with:
-          files: |
-            **/*.dmg
-            **/*.exe  
-            **/*.AppImage
+          files: ./release-files/*
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts for next job
         uses: actions/upload-artifact@v4
+        if: steps.prepare_files.outputs.has_files == 'true'
         with:
           name: built-app-${{ matrix.os }}
-          path: |
-            **/*.dmg
-            **/*.exe
-            **/*.AppImage
+          path: ./release-files/
           retention-days: 1
           if-no-files-found: warn
 
