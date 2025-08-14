@@ -174,20 +174,34 @@ jobs:
         with:
           github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
           script: |
+            // Wait a bit for GitHub to process the release
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
             const { data: release } = await github.rest.repos.getReleaseByTag({
               owner: 'joseph-abdallah04',
               repo: 'Scopix',
               tag: '${{ github.ref_name }}'
             });
             
+            console.log(`Found release: ${release.name}`);
+            console.log(`Assets found: ${release.assets.length}`);
+            
             // Find and delete source code assets
             for (const asset of release.assets) {
-              if (asset.name.includes('Source code') || asset.name.endsWith('.zip') || asset.name.endsWith('.tar.gz')) {
+              console.log(`Checking asset: ${asset.name}`);
+              if (asset.name.toLowerCase().includes('source code') || 
+                  (asset.name.endsWith('.zip') && asset.name !== 'Scopix.Setup.1.0.0.exe') ||
+                  asset.name.endsWith('.tar.gz')) {
                 console.log(`Deleting source code asset: ${asset.name}`);
-                await github.rest.repos.deleteReleaseAsset({
-                  owner: 'joseph-abdallah04',
-                  repo: 'Scopix',
-                  asset_id: asset.id
-                });
+                try {
+                  await github.rest.repos.deleteReleaseAsset({
+                    owner: 'joseph-abdallah04',
+                    repo: 'Scopix',
+                    asset_id: asset.id
+                  });
+                  console.log(`Successfully deleted: ${asset.name}`);
+                } catch (error) {
+                  console.error(`Failed to delete ${asset.name}:`, error.message);
+                }
               }
             }
