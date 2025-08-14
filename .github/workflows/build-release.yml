@@ -73,31 +73,40 @@ jobs:
           pnpm dist
 
       - name: List built files (debug)
+        shell: bash
         run: |
           echo "=== Debug: Finding all built files ==="
           echo "Working directory contents:"
-          ls -la
+          ls -la .
           echo ""
           echo "Frontend directory contents:"
-          ls -la front_end/ || echo "front_end directory not found"
+          if [ -d "front_end" ]; then
+            ls -la front_end/
+          else
+            echo "front_end directory not found"
+          fi
           echo ""
           echo "Looking for dist directories:"
-          find . -name "dist" -type d
+          find . -name "dist" -type d 2>/dev/null || echo "No dist directories found"
           echo ""
           echo "Looking for release directories:" 
-          find . -name "release" -type d
+          find . -name "release" -type d 2>/dev/null || echo "No release directories found"
           echo ""
           echo "All .dmg files:"
-          find . -name "*.dmg" -type f
+          find . -name "*.dmg" -type f 2>/dev/null || echo "No .dmg files found"
           echo ""
           echo "All .exe files:"
-          find . -name "*.exe" -type f  
+          find . -name "*.exe" -type f 2>/dev/null || echo "No .exe files found"
           echo ""
           echo "All .AppImage files:"
-          find . -name "*.AppImage" -type f
+          find . -name "*.AppImage" -type f 2>/dev/null || echo "No .AppImage files found"
           echo ""
-          echo "All executable files in front_end:"
-          find front_end/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) 2>/dev/null || echo "No executables found in front_end"
+          echo "All executable files in front_end (if exists):"
+          if [ -d "front_end" ]; then
+            find front_end/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) 2>/dev/null || echo "No executables found in front_end"
+          else
+            echo "front_end directory doesn't exist"
+          fi
 
       - name: Upload to Private Repo Release
         uses: softprops/action-gh-release@v2
