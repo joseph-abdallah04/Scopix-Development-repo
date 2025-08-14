@@ -45,7 +45,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v1
+        uses: astral-sh-setup-uv@v1
 
       - name: Install Python deps
         working-directory: back_end
@@ -72,123 +72,16 @@ jobs:
         run: |
           pnpm dist
 
-      - name: List built files (debug)
-        shell: bash
-        run: |
-          echo "=== Debug: Finding all built files ==="
-          echo "Working directory contents:"
-          node -e "require('fs').readdirSync('.', {withFileTypes:true}).forEach(e=>console.log(e.isDirectory()?'[D]':'[F]',e.name))"
-          echo ""
-          echo "Frontend directory contents:"
-          node -e "try { require('fs').readdirSync('front_end', {withFileTypes:true}).forEach(e=>console.log(e.isDirectory()?'[D]':'[F]',e.name)) } catch(e) { console.log('front_end directory not found') }"
-          echo ""
-          echo "Looking for dist directories:"
-          node -e "const fs=require('fs');const path=require('path');function findDirs(dir,target){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isDirectory()){if(item.name===target)console.log(fullPath);findDirs(fullPath,target)}})}catch(e){}}findDirs('.','dist')"
-          echo ""
-          echo "Looking for release directories:"
-          node -e "const fs=require('fs');const path=require('path');function findDirs(dir,target){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isDirectory()){if(item.name===target)console.log(fullPath);findDirs(fullPath,target)}})}catch(e){}}findDirs('.','release')"
-          echo ""
-          echo "All .dmg files:"
-          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.dmg')"
-          echo ""
-          echo "All .exe files:"
-          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.exe')"
-          echo ""
-          echo "All .AppImage files:"
-          node -e "const fs=require('fs');const path=require('path');function findFiles(dir,ext){try{const items=fs.readdirSync(dir,{withFileTypes:true});items.forEach(item=>{const fullPath=path.join(dir,item.name);if(item.isFile()&&item.name.endsWith(ext)){console.log(fullPath)}else if(item.isDirectory()){findFiles(fullPath,ext)}})}catch(e){}}findFiles('.','.AppImage')"
-
-      - name: Find and prepare release files
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          echo "=== Finding release files on ${{ matrix.os }} ==="
-          
-          # Debug: Let's see what directories exist
-          echo "=== Debug: Checking directory structure ==="
-          echo "Current directory contents:"
-          ls -la
-          echo ""
-          echo "Front-end directory contents:"
-          ls -la front_end/ || echo "front_end directory not accessible"
-          echo ""
-          echo "Looking for any dist or release directories:"
-          find front_end -type d -name "*dist*" -o -name "*release*" -o -name "*build*" 2>/dev/null || echo "No build directories found in front_end"
-          echo ""
-          echo "Looking for installer files anywhere in front_end:"
-          find front_end -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" 2>/dev/null || echo "No installer files found"
-          
-          # Create a temp directory for files to upload
-          mkdir -p ./release-files
-          
-          # Let's search more broadly for the installer files
-          echo "=== Searching for installer files ==="
-          
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            echo "Looking for Windows installer..."
-            # Search more broadly in front_end directory
-            find front_end -name "Scopix.Setup.*.exe" -o -name "Scopix-Setup-*.exe" -o -name "*Setup*.exe" 2>/dev/null | head -1 | while read -r file; do
-              if [ -f "$file" ]; then
-                echo "Found Windows installer: $file"
-                cp "$file" "./release-files/"
-              fi
-            done
-            
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            echo "Looking for macOS installer..."
-            # Search more broadly in front_end directory
-            find front_end -name "Scopix-*.dmg" -o -name "*.dmg" 2>/dev/null | head -1 | while read -r file; do
-              if [ -f "$file" ]; then
-                echo "Found macOS installer: $file"
-                cp "$file" "./release-files/"
-              fi
-            done
-            
-          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            echo "Looking for Linux installer..."
-            # Search more broadly in front_end directory
-            find front_end -name "Scopix-*.AppImage" -o -name "*.AppImage" 2>/dev/null | head -1 | while read -r file; do
-              if [ -f "$file" ]; then
-                echo "Found Linux installer: $file"
-                cp "$file" "./release-files/"
-              fi
-            done
-          fi
-          
-          # List what we found
-          echo "=== Files prepared for release ==="
-          ls -la ./release-files/ || echo "No files found"
-          
-          # Count files (should be exactly 1 per platform)
-          FILE_COUNT=$(find ./release-files -type f | wc -l)
-          echo "Total files found: $FILE_COUNT"
-          
-          if [ "$FILE_COUNT" -gt 0 ]; then
-            echo "has_files=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_files=false" >> $GITHUB_OUTPUT
-            echo "=== Additional Debug Info ==="
-            echo "Complete front_end directory tree:"
-            find front_end -type f -name "*" 2>/dev/null | head -20
-          fi
-        id: prepare_files
-
-      - name: Upload to Private Repo Release  
+      - name: Upload to Private Repo Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') && steps.prepare_files.outputs.has_files == 'true'
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ./release-files/*
-          fail_on_unmatched_files: false
+          files: |
+            front_end/release/*.dmg
+            front_end/release/*.exe
+            front_end/release/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload artifacts for next job
-        uses: actions/upload-artifact@v4
-        if: steps.prepare_files.outputs.has_files == 'true'
-        with:
-          name: built-app-${{ matrix.os }}
-          path: ./release-files/
-          retention-days: 1
-          if-no-files-found: warn
 
   publish-to-public:
     name: Publish to Public Repository
@@ -200,84 +93,78 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-          path: ./artifacts
-
-      - name: List downloaded files (debug)
-        run: |
-          echo "Downloaded artifacts:"
-          find ./artifacts -type f -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" | sort
-
-      - name: Create Release in Public Repository
+      - name: Download release assets
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PUBLIC_REPO_TOKEN }}
           script: |
             const fs = require('fs');
-            const path = require('path');
-            const { execSync } = require('child_process');
+            const { owner, repo } = context.repo;
             
-            // Create the release first
-            const { data: release } = await github.rest.repos.createRelease({
-              owner: 'joseph-abdallah04',
-              repo: 'Scopix',
-              tag_name: '${{ github.ref_name }}',
-              name: 'Release ${{ github.ref_name }}',
-              body: `## Scopix Desktop Application - ${{ github.ref_name }}
+            // Get the release that was just created
+            const releases = await github.rest.repos.listReleases({
+              owner,
+              repo,
+              per_page: 1
+            });
+            
+            if (releases.data.length === 0) {
+              throw new Error('No releases found');
+            }
+            
+            const release = releases.data[0];
+            console.log(`Found release: ${release.tag_name}`);
+            
+            // Download all assets
+            for (const asset of release.assets) {
+              console.log(`Downloading ${asset.name}...`);
+              const response = await github.rest.repos.getReleaseAsset({
+                owner,
+                repo,
+                asset_id: asset.id,
+                headers: {
+                  Accept: 'application/octet-stream'
+                }
+              });
+              
+              fs.writeFileSync(asset.name, Buffer.from(response.data));
+            }
+            
+            // Store release info for next step
+            fs.writeFileSync('release-info.json', JSON.stringify({
+              tag_name: release.tag_name,
+              name: release.name,
+              body: release.body,
+              assets: release.assets.map(a => a.name)
+            }));
+
+      - name: Create Release in Public Repository
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: joseph-abdallah04/Scopix
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Scopix Desktop Application - ${{ github.ref_name }}
             
             **For speech pathologists and medical professionals researching Inducible Laryngeal Obstruction (ILO)**
             
             ### Downloads Available:
-            - **Windows**: \`.exe\` installer
-            - **Linux**: \`.AppImage\` portable application
-            - **macOS**: \`.dmg\` installer (if available)
+            - **Windows**: `.exe` installer
+            - **Linux**: `.AppImage` portable application
+            - **macOS**: `.dmg` installer (if available)
             
             ### Before Installing:
-            1. **Review the [End User License Agreement (EULA)](https://github.com/joseph-abdallah04/Scopix/blob/main/EULA.md)**
-            2. **Read the [README](https://github.com/joseph-abdallah04/Scopix/blob/main/README.md)** for installation instructions
+            1. **Review the [End User License Agreement (EULA)](https://github.com/YOUR_USERNAME/Scopix/blob/main/EULA.md)**
+            2. **Read the [README](https://github.com/YOUR_USERNAME/Scopix/blob/main/README.md)** for installation instructions
             3. **Check system requirements** in the README
             
             By downloading and using Scopix, you agree to the terms outlined in the EULA.
             
             ### Medical Disclaimer
-            Scopix is intended as a tool for research and professional use by qualified medical practitioners. It is **not** a substitute for professional medical judgment, diagnosis, or treatment.`,
-              draft: false,
-              prerelease: false
-            });
-            
-            console.log(`Created release: ${release.html_url}`);
-            
-            // Find and upload only the built application files
-            const fileTypes = ['*.dmg', '*.exe', '*.AppImage'];
-            
-            for (const pattern of fileTypes) {
-              try {
-                const files = execSync(`find ./artifacts -name "${pattern}" -type f`, { encoding: 'utf8' })
-                  .trim()
-                  .split('\n')
-                  .filter(f => f && f.length > 0);
-                
-                for (const filePath of files) {
-                  if (fs.existsSync(filePath)) {
-                    console.log(`Uploading ${filePath}...`);
-                    const fileContent = fs.readFileSync(filePath);
-                    const fileName = path.basename(filePath);
-                    
-                    await github.rest.repos.uploadReleaseAsset({
-                      owner: 'joseph-abdallah04',
-                      repo: 'Scopix',
-                      release_id: release.id,
-                      name: fileName,
-                      data: fileContent
-                    });
-                    
-                    console.log(`Successfully uploaded ${fileName}`);
-                  }
-                }
-              } catch (error) {
-                console.log(`No ${pattern} files found or error: ${error.message}`);
-              }
-            }
+            Scopix is intended as a tool for research and professional use by qualified medical practitioners. It is **not** a substitute for professional medical judgment, diagnosis, or treatment.
+          files: |
+            *.dmg
+            *.exe
+            *.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
